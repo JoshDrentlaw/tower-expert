@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: tower
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: tower
+    ports:
+      - "5433:5432"
+    volumes:
+      - tower_pg_data:/var/lib/postgresql/data
+      - ./db/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+    restart: unless-stopped
+
+volumes:
+  tower_pg_data:
