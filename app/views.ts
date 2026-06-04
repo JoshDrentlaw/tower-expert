@@ -2,8 +2,29 @@
 // Dark "control panel" aesthetic to match a homelab dashboard; dependency-free
 // (no external fonts/CDN) so it stays fast on the LAN.
 
-import { Build } from "../db/db.ts";
+import { BattleReport, Build } from "../db/db.ts";
 import { Category, STAT_SCHEMA } from "./stat_schema.ts";
+
+const SFXS: [number, string][] = [
+  [1e30, "N"], [1e27, "O"], [1e24, "S"], [1e21, "s"],
+  [1e18, "Q"], [1e15, "q"], [1e12, "T"], [1e9,  "B"], [1e6, "M"], [1e3, "K"],
+];
+
+function fmtNum(n: number | null): string {
+  if (n === null || n === undefined) return "—";
+  for (const [threshold, suffix] of SFXS) {
+    if (n >= threshold) return (n / threshold).toFixed(2) + suffix;
+  }
+  return n.toLocaleString();
+}
+
+function fmtDuration(s: number | null): string {
+  if (!s) return "—";
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return [h && `${h}h`, m && `${m}m`, `${sec}s`].filter(Boolean).join(" ");
+}
 
 function esc(v: unknown): string {
   return String(v ?? "")
@@ -69,9 +90,11 @@ export function layout(base: string, title: string, body: string): string {
 <header>
   <h1>Tower // Builds</h1>
   <nav>
-    <a href="${base}/builds">history</a>
-    <a href="${base}/builds/new">new</a>
+    <a href="${base}/builds">builds</a>
+    <a href="${base}/builds/new">new build</a>
     <a href="${base}/builds/new?from=latest">respec</a>
+    <a href="${base}/reports">reports</a>
+    <a href="${base}/reports/new">log run</a>
   </nav>
 </header>
 ${body}
@@ -146,4 +169,77 @@ export function buildDetail(base: string, b: Build): string {
   return `
     <p><a href="${base}/builds/new?from=${b.id}" style="color:var(--accent);font-family:var(--mono)">→ respec from this build</a></p>
     <pre>${esc(JSON.stringify(b.data, null, 2))}</pre>`;
+}
+
+export function reportForm(base: string, builds: Build[]): string {
+  const buildOptions = builds
+    .map((b) => `<option value="${b.id}">#${b.id} ${esc(b.label)}</option>`)
+    .join("");
+  return `
+<form method="post" action="${base}/reports">
+  <p class="hint">Paste your after-run battle report below. Tier, wave, coins, and duration are extracted automatically.</p>
+  <div class="meta">
+    <div>
+      <label>Build (optional)</label>
+      <select name="build_id">
+        <option value="">— no build linked —</option>
+        ${buildOptions}
+      </select>
+    </div>
+    <div></div>
+  </div>
+  <div style="margin-bottom:1rem;">
+    <label>Battle Report Paste</label>
+    <textarea name="raw" rows="22" placeholder="Paste your after-run report here..." style="font-size:.78rem;line-height:1.5;resize:vertical;"></textarea>
+  </div>
+  <div class="actions"><button type="submit">Save report</button></div>
+</form>`;
+}
+
+export function reportsList(base: string, reports: BattleReport[]): string {
+  if (reports.length === 0) {
+    return `<p class="hint">No reports yet. <a href="${base}/reports/new" style="color:var(--accent)">Log a run →</a></p>`;
+  }
+  const rows = reports.map((r) => `
+    <tr>
+      <td><a href="${base}/reports/${r.id}">#${r.id}</a></td>
+      <td class="hint">${esc(new Date(r.occurred_at).toLocaleString())}</td>
+      <td>${r.tier ?? "—"}</td>
+      <td>${r.wave?.toLocaleString() ?? "—"}</td>
+      <td>${fmtNum(r.coins)}</td>
+      <td class="hint">${fmtDuration(r.duration_s)}</td>
+      <td>${r.build_id
+        ? `<a href="${base}/builds/${r.build_id}">#${r.build_id} ${esc(r.build_label ?? "")}</a>`
+        : "—"}</td>
+    </tr>`).join("");
+  return `<table>
+    <thead><tr><th>#</th><th>Date</th><th>Tier</th><th>Wave</th><th>Coins</th><th>Duration</th><th>Build</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+export function reportDetail(base: string, r: BattleReport): string {
+  const br = r.parsed["battle_report"] ?? {};
+  const summary: [string, string][] = [
+    ["Occurred",    esc(new Date(r.occurred_at).toLocaleString())],
+    ["Tier",        esc(r.tier?.toString() ?? "—")],
+    ["Wave",        esc(r.wave?.toLocaleString() ?? "—")],
+    ["Coins Earned", esc(br["Coins Earned"] ?? fmtNum(r.coins))],
+    ["Coins / Hour", esc(br["Coins Per Hour"] ?? "—")],
+    ["Cells Earned", esc(br["Cells Earned"] ?? "—")],
+    ["Real Time",   esc(br["Real Time"] ?? fmtDuration(r.duration_s))],
+    ["Killed By",   esc(br["Killed By"] ?? "—")],
+    ...(r.build_id
+      ? [["Build", `<a href="${base}/builds/${r.build_id}" style="color:var(--accent)">#${r.build_id} ${esc(r.build_label ?? "")}</a>`] as [string, string]]
+      : []),
+  ];
+  const summaryRows = summary
+    .map(([k, v]) => `<tr><th style="width:160px;font-weight:normal">${k}</th><td>${v}</td></tr>`)
+    .join("");
+  return `
+    <table style="width:auto;margin-bottom:1.5rem;font-size:.88rem;">${summaryRows}</table>
+    <pre>${esc(JSON.stringify(r.parsed, null, 2))}</pre>
+    ${r.raw
+      ? `<details style="margin-top:1rem;"><summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">raw paste</summary><pre style="margin-top:.5rem">${esc(r.raw)}</pre></details>`
+      : ""}`;
 }
