@@ -3,7 +3,7 @@
 // (no external fonts/CDN) so it stays fast on the LAN.
 
 import { BattleReport, Build } from "../db/db.ts";
-import { Category, STAT_SCHEMA } from "./stat_schema.ts";
+import { Category, FieldType, STAT_SCHEMA } from "./stat_schema.ts";
 
 const SFXS: [number, string][] = [
   [1e30, "N"], [1e27, "O"], [1e24, "S"], [1e21, "s"],
@@ -77,6 +77,10 @@ const STYLE = `
   td a { color: var(--accent); text-decoration: none; }
   pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
     padding: 1rem; overflow: auto; font-family: var(--mono); font-size: .82rem; }
+  .paired-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; align-items: start; }
+  .col-hdr { font-family: var(--mono); font-size: .68rem; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--accent-dim);
+    padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
 `;
 
 export function layout(base: string, title: string, body: string): string {
@@ -101,7 +105,7 @@ ${body}
 </body></html>`;
 }
 
-function fieldInput(cat: Category, f: Category["fields"][number], value: unknown): string {
+function fieldInput(cat: Category, f: { key: string; type: FieldType; options?: string[] }, value: unknown): string {
   const name = `${cat.key}.${f.key}`;
   const v = value ?? "";
   if (f.type === "select") {
@@ -118,19 +122,49 @@ function fieldInput(cat: Category, f: Category["fields"][number], value: unknown
   return `<input type="${inputType}"${step} name="${esc(name)}" value="${esc(v)}">`;
 }
 
+function renderSection(cat: Category, data: Record<string, Record<string, unknown>>): string {
+  const catData = (data[cat.key] as Record<string, unknown> | undefined) ?? {};
+  const hasEnhancements = cat.fields.some((f) => f.enhancement);
+
+  if (!hasEnhancements) {
+    const cells = cat.fields.map((f) =>
+      `<div><label>${esc(f.label)}</label>${fieldInput(cat, f, catData[f.key])}</div>`
+    ).join("");
+    return `<fieldset><legend>${esc(cat.title)}</legend><div class="grid">${cells}</div></fieldset>`;
+  }
+
+  // Upgrades in col 1 (DOM-first = tab-first), enhancements in col 2 (DOM-second).
+  // Explicit grid-row on every cell keeps visual rows aligned without interleaving tab stops.
+  const upgradeCells = cat.fields.map((f, i) =>
+    `<div style="grid-column:1;grid-row:${i + 2}">
+      <label>${esc(f.label)}</label>${fieldInput(cat, f, catData[f.key])}
+    </div>`
+  ).join("");
+
+  const enhCells = cat.fields.map((f, i) => {
+    if (!f.enhancement) return "";
+    return `<div style="grid-column:2;grid-row:${i + 2}">
+      <label>${esc(f.enhancement.label)}</label>${fieldInput(cat, f.enhancement, catData[f.enhancement.key])}
+    </div>`;
+  }).join("");
+
+  return `<fieldset><legend>${esc(cat.title)}</legend>
+    <div class="paired-grid">
+      <div class="col-hdr" style="grid-column:1;grid-row:1">Upgrade</div>
+      <div class="col-hdr" style="grid-column:2;grid-row:1">Enhancement ×</div>
+      ${upgradeCells}
+      ${enhCells}
+    </div>
+  </fieldset>`;
+}
+
 // `build` prefills the form (used for respec / clone-and-edit).
 export function buildForm(base: string, opts: { build?: Build; parentId?: number } = {}): string {
   const data: Record<string, Record<string, unknown>> = opts.build?.data ?? {};
   const parentId = opts.parentId ?? "";
   const defaultLabel = opts.build ? `${opts.build.label} (respec)` : "";
 
-  const sections = STAT_SCHEMA.map((cat) => {
-    const cells = cat.fields.map((f) => {
-      const current = (data[cat.key] as Record<string, unknown> | undefined)?.[f.key];
-      return `<div><label>${esc(f.label)}</label>${fieldInput(cat, f, current)}</div>`;
-    }).join("");
-    return `<fieldset><legend>${esc(cat.title)}</legend><div class="grid">${cells}</div></fieldset>`;
-  }).join("");
+  const sections = STAT_SCHEMA.map((cat) => renderSection(cat, data)).join("");
 
   const respecNote = opts.build
     ? `<p class="hint">Cloned from build #${opts.build.id} — change only what moved, then save as a new snapshot. Untouched fields carry forward.</p>`

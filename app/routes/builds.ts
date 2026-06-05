@@ -62,6 +62,12 @@ export async function handleSave(base: string, req: Request): Promise<Response> 
       const raw = form.get(`${cat.key}.${f.key}`) as string | null;
       const value = coerce(f.type, raw);
       if (value !== null) section[f.key] = value;
+
+      if (f.enhancement) {
+        const enhRaw = form.get(`${cat.key}.${f.enhancement.key}`) as string | null;
+        const enhValue = coerce(f.enhancement.type, enhRaw);
+        if (enhValue !== null) section[f.enhancement.key] = enhValue;
+      }
     }
     if (Object.keys(section).length > 0) data[cat.key] = section;
   }
