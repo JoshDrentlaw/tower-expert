@@ -4,12 +4,7 @@
 // handle_path stripping: every route and link is prefixed, so assets and
 // form actions resolve correctly under the subpath.
 
-import {
-  handleDetail,
-  handleList,
-  handleNew,
-  handleSave,
-} from "./app/routes/builds.ts";
+import { handleDetail, handleList, handleNew, handleSave } from "./app/routes/builds.ts";
 import {
   handleReportDetail,
   handleReportList,
@@ -20,7 +15,7 @@ import {
 const BASE = (Deno.env.get("BASE_PATH") ?? "/tower").replace(/\/+$/, "");
 const PORT = Number(Deno.env.get("PORT") ?? 8787);
 
-const buildPattern  = new URLPattern({ pathname: `${BASE}/builds/:id(\\d+)` });
+const buildPattern = new URLPattern({ pathname: `${BASE}/builds/:id(\\d+)` });
 const reportPattern = new URLPattern({ pathname: `${BASE}/reports/:id(\\d+)` });
 
 Deno.serve({ port: PORT }, async (req) => {
@@ -34,9 +29,11 @@ Deno.serve({ port: PORT }, async (req) => {
     }
 
     // Build routes
-    if (req.method === "GET"  && pathname === `${BASE}/builds`)     return await handleList(BASE);
-    if (req.method === "GET"  && pathname === `${BASE}/builds/new`) return await handleNew(BASE, url);
-    if (req.method === "POST" && pathname === `${BASE}/builds`)     return await handleSave(BASE, req);
+    if (req.method === "GET" && pathname === `${BASE}/builds`) return await handleList(BASE);
+    if (req.method === "GET" && pathname === `${BASE}/builds/new`) {
+      return await handleNew(BASE, url);
+    }
+    if (req.method === "POST" && pathname === `${BASE}/builds`) return await handleSave(BASE, req);
 
     const buildMatch = buildPattern.exec(url);
     if (req.method === "GET" && buildMatch) {
@@ -44,9 +41,13 @@ Deno.serve({ port: PORT }, async (req) => {
     }
 
     // Report routes
-    if (req.method === "GET"  && pathname === `${BASE}/reports`)     return await handleReportList(BASE);
-    if (req.method === "GET"  && pathname === `${BASE}/reports/new`) return await handleReportNew(BASE);
-    if (req.method === "POST" && pathname === `${BASE}/reports`)     return await handleReportSave(BASE, req);
+    if (req.method === "GET" && pathname === `${BASE}/reports`) return await handleReportList(BASE);
+    if (req.method === "GET" && pathname === `${BASE}/reports/new`) {
+      return await handleReportNew(BASE);
+    }
+    if (req.method === "POST" && pathname === `${BASE}/reports`) {
+      return await handleReportSave(BASE, req);
+    }
 
     const reportMatch = reportPattern.exec(url);
     if (req.method === "GET" && reportMatch) {
