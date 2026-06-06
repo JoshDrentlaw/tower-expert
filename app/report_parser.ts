@@ -44,9 +44,11 @@ function parseBattleDate(val: string): string {
 export function parseReport(raw: string): ParsedReport {
   const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
 
-  const parsed: Record<string, Record<string, string>> = {};
+  // Object.create(null) — no prototype chain, so attacker-controlled section
+  // headers (e.g. "constructor") cannot clobber Object.prototype properties.
+  const parsed = Object.create(null) as Record<string, Record<string, string>>;
   let section = "battle_report";
-  parsed[section] = {};
+  parsed[section] = Object.create(null) as Record<string, string>;
 
   for (const line of lines) {
     const parts = line.split(/\t| {2,}/);
@@ -55,7 +57,7 @@ export function parseReport(raw: string): ParsedReport {
 
     if (!value) {
       section = key.toLowerCase().replace(/[\s/()+]+/g, "_").replace(/_+$/, "");
-      if (!parsed[section]) parsed[section] = {};
+      if (!parsed[section]) parsed[section] = Object.create(null) as Record<string, string>;
     } else {
       parsed[section][key] = value;
     }
@@ -63,12 +65,18 @@ export function parseReport(raw: string): ParsedReport {
 
   const top = parsed["battle_report"] ?? {};
 
+  // parseInt can return NaN for truthy non-numeric strings (e.g. "abc"), and
+  // partial parses like "12abc" silently store 12. Guard with Number.isFinite
+  // so only clean integers reach the Postgres INT columns.
+  const tierRaw = top["Tier"] ? parseInt(top["Tier"]) : NaN;
+  const waveRaw = top["Wave"] ? parseInt(top["Wave"].replace(/,/g, "")) : NaN;
+
   return {
     occurred_at: parseBattleDate(top["Battle Date"] ?? ""),
-    tier:        top["Tier"]          ? parseInt(top["Tier"])                          : null,
-    wave:        top["Wave"]          ? parseInt(top["Wave"].replace(/,/g, ""))        : null,
-    coins:       top["Coins Earned"]  ? expandNumber(top["Coins Earned"])              : null,
-    duration_s:  top["Real Time"]     ? parseDuration(top["Real Time"])                : null,
+    tier:       Number.isFinite(tierRaw) ? tierRaw : null,
+    wave:       Number.isFinite(waveRaw) ? waveRaw : null,
+    coins:      top["Coins Earned"]  ? expandNumber(top["Coins Earned"])   : null,
+    duration_s: top["Real Time"]     ? parseDuration(top["Real Time"])     : null,
     parsed,
   };
 }

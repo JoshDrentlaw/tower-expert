@@ -1,7 +1,7 @@
 {
   "tasks": {
-    "dev": "deno run --allow-net --allow-env --watch main.ts",
-    "start": "deno run --allow-net --allow-env main.ts"
+    "dev": "deno run --allow-net --allow-env --env-file --watch main.ts",
+    "start": "deno run --allow-net --allow-env --env-file main.ts"
   },
   "imports": {
     "postgres": "npm:postgres@3"

@@ -31,7 +31,8 @@ function esc(v: unknown): string {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 const STYLE = `
@@ -159,24 +160,53 @@ function renderSection(cat: Category, data: Record<string, Record<string, unknow
 }
 
 // `build` prefills the form (used for respec / clone-and-edit).
-export function buildForm(base: string, opts: { build?: Build; parentId?: number } = {}): string {
-  const data: Record<string, Record<string, unknown>> = opts.build?.data ?? {};
+// `error` displays a validation error banner (role="alert") above the form.
+// `submittedLabel`, `submittedNote`, and `submittedData` repopulate the form
+//   after a failed save so no user input is lost. These take priority over the
+//   `build` prefill values when present.
+export function buildForm(
+  base: string,
+  opts: {
+    build?: Build;
+    parentId?: number;
+    error?: string;
+    submittedLabel?: string;
+    submittedNote?: string;
+    submittedData?: Record<string, Record<string, unknown>>;
+  } = {},
+): string {
+  // submittedData takes priority over build.data so validation-error re-renders
+  // echo back exactly what the user submitted.
+  const data: Record<string, Record<string, unknown>> =
+    opts.submittedData ?? opts.build?.data ?? {};
   const parentId = opts.parentId ?? "";
-  const defaultLabel = opts.build ? `${opts.build.label} (respec)` : "";
+  // On a validation-error re-render, submittedLabel takes priority so the bad
+  // value is echoed back; on a respec prefill, derive the default from the source build.
+  const labelValue = opts.submittedLabel !== undefined
+    ? opts.submittedLabel
+    : (opts.build ? `${opts.build.label} (respec)` : "");
+  const noteValue = opts.submittedNote ?? "";
 
   const sections = STAT_SCHEMA.map((cat) => renderSection(cat, data)).join("");
 
-  const respecNote = opts.build
+  const errorBanner = opts.error
+    ? `<p class="hint" style="color:#e88" role="alert">${esc(opts.error)}</p>`
+    : "";
+
+  // Show the respec note only when prefilling from an actual saved build (not
+  // on a validation-error re-render where submittedData is supplied instead).
+  const respecNote = opts.build && !opts.submittedData
     ? `<p class="hint">Cloned from build #${opts.build.id} — change only what moved, then save as a new snapshot. Untouched fields carry forward.</p>`
     : `<p class="hint">A new snapshot. Or start from your last build via <a href="${base}/builds/new?from=latest" style="color:var(--accent)">respec</a>.</p>`;
 
   return `
 <form method="post" action="${base}/builds">
   <input type="hidden" name="parent_build_id" value="${esc(parentId)}">
+  ${errorBanner}
   ${respecNote}
   <div class="meta">
-    <div><label>Label</label><input type="text" name="label" value="${esc(defaultLabel)}" placeholder="fire crit v3" required></div>
-    <div><label>Note</label><input type="text" name="note" placeholder="optional context"></div>
+    <div><label>Label</label><input type="text" name="label" value="${esc(labelValue)}" placeholder="fire crit v3" required></div>
+    <div><label>Note</label><input type="text" name="note" value="${esc(noteValue)}" placeholder="optional context"></div>
   </div>
   ${sections}
   <div class="actions"><button type="submit">Save snapshot</button></div>
@@ -205,12 +235,24 @@ export function buildDetail(base: string, b: Build): string {
     <pre>${esc(JSON.stringify(b.data, null, 2))}</pre>`;
 }
 
-export function reportForm(base: string, builds: Build[]): string {
+export function reportForm(
+  base: string,
+  builds: Build[],
+  opts: { raw?: string; buildId?: string | number; error?: string } = {},
+): string {
+  const selectedBuildId = opts.buildId != null ? String(opts.buildId) : "";
   const buildOptions = builds
-    .map((b) => `<option value="${b.id}">#${b.id} ${esc(b.label)}</option>`)
+    .map((b) => {
+      const sel = String(b.id) === selectedBuildId ? " selected" : "";
+      return `<option value="${b.id}"${sel}>#${b.id} ${esc(b.label)}</option>`;
+    })
     .join("");
+  const errorBanner = opts.error
+    ? `<p class="hint" style="color:#e88" role="alert">${esc(opts.error)}</p>`
+    : "";
   return `
 <form method="post" action="${base}/reports">
+  ${errorBanner}
   <p class="hint">Paste your after-run battle report below. Tier, wave, coins, and duration are extracted automatically.</p>
   <div class="meta">
     <div>
@@ -224,7 +266,7 @@ export function reportForm(base: string, builds: Build[]): string {
   </div>
   <div style="margin-bottom:1rem;">
     <label>Battle Report Paste</label>
-    <textarea name="raw" rows="22" placeholder="Paste your after-run report here..." style="font-size:.78rem;line-height:1.5;resize:vertical;"></textarea>
+    <textarea name="raw" rows="22" placeholder="Paste your after-run report here..." style="font-size:.78rem;line-height:1.5;resize:vertical;">${esc(opts.raw ?? "")}</textarea>
   </div>
   <div class="actions"><button type="submit">Save report</button></div>
 </form>`;

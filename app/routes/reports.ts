@@ -24,21 +24,46 @@ export async function handleReportNew(base: string): Promise<Response> {
 export async function handleReportSave(base: string, req: Request): Promise<Response> {
   const form = await req.formData();
   const raw = (form.get("raw") as string | null)?.trim();
+  const buildRaw = form.get("build_id") as string | null;
+  const build_id = buildRaw && /^\d+$/.test(buildRaw) ? Number(buildRaw) : null;
 
   if (!raw) {
     const builds = await listBuilds();
     return html(
       base,
       "Tower // Log Run",
-      `<p class="hint" style="color:#e88">Paste is required.</p>` + reportForm(base, builds),
+      reportForm(base, builds, {
+        buildId: buildRaw ?? undefined,
+        error: "Paste is required.",
+      }),
       400,
     );
   }
 
-  const buildRaw = form.get("build_id") as string | null;
-  const build_id = buildRaw && /^\d+$/.test(buildRaw) ? Number(buildRaw) : null;
-
   const p = parseReport(raw);
+
+  // Detect a meaningless parse: all scalar fields are null AND every section
+  // object is empty. Saving this would insert a ghost record with no data and
+  // silently report success.
+  const hasScalars = p.tier !== null || p.wave !== null || p.coins !== null;
+  const hasSectionData = Object.values(p.parsed).some(
+    (sec) => Object.keys(sec).length > 0,
+  );
+  if (!hasScalars && !hasSectionData) {
+    const builds = await listBuilds();
+    return html(
+      base,
+      "Tower // Log Run",
+      reportForm(base, builds, {
+        raw,
+        buildId: buildRaw ?? undefined,
+        error:
+          "Could not find battle report data in that paste — make sure you copied the full after-run report from the game.",
+      }),
+      422,
+    );
+  }
+
   const id = await insertBattleReport({
     build_id,
     occurred_at: p.occurred_at,

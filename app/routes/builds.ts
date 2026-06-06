@@ -42,13 +42,7 @@ export async function handleNew(base: string, url: URL): Promise<Response> {
 export async function handleSave(base: string, req: Request): Promise<Response> {
   const form = await req.formData();
 
-  const label = (form.get("label") as string | null)?.trim();
-  if (!label) {
-    return html(base, "Tower // New Build",
-      `<p class="hint" style="color:#e88">Label is required.</p>` + buildForm(base),
-      400);
-  }
-
+  const labelRaw = (form.get("label") as string | null)?.trim();
   const note = (form.get("note") as string | null)?.trim() || null;
   const parentRaw = form.get("parent_build_id") as string | null;
   const parent_build_id = parentRaw && /^\d+$/.test(parentRaw) ? Number(parentRaw) : null;
@@ -72,7 +66,25 @@ export async function handleSave(base: string, req: Request): Promise<Response> 
     if (Object.keys(section).length > 0) data[cat.key] = section;
   }
 
-  const id = await insertBuild({ label, note, parent_build_id, data });
+  if (!labelRaw) {
+    // Re-hydrate the form with everything the user submitted so no data is lost.
+    // submittedData carries all the coerced stat fields; submittedLabel echoes
+    // the (empty/blank) label the user gave; submittedNote echoes the note.
+    return html(
+      base,
+      "Tower // New Build",
+      buildForm(base, {
+        parentId: parent_build_id ?? undefined,
+        error: "Label is required.",
+        submittedLabel: "",
+        submittedNote: note ?? "",
+        submittedData: data,
+      }),
+      400,
+    );
+  }
+
+  const id = await insertBuild({ label: labelRaw, note, parent_build_id, data });
   return Response.redirect(new URL(`${base}/builds/${id}`, req.url), 303);
 }
 
