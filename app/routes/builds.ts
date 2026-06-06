@@ -1,12 +1,6 @@
 // routes/builds.ts — request handlers for the build lifecycle.
 
-import {
-  Build,
-  getBuild,
-  getLatestBuild,
-  insertBuild,
-  listBuilds,
-} from "../../db/db.ts";
+import { Build, getBuild, getLatestBuild, insertBuild, listBuilds } from "../../db/db.ts";
 import { coerce, STAT_SCHEMA } from "../stat_schema.ts";
 import { buildDetail, buildForm, buildsList, layout } from "../views.ts";
 
@@ -44,9 +38,12 @@ export async function handleSave(base: string, req: Request): Promise<Response> 
 
   const label = (form.get("label") as string | null)?.trim();
   if (!label) {
-    return html(base, "Tower // New Build",
+    return html(
+      base,
+      "Tower // New Build",
       `<p class="hint" style="color:#e88">Label is required.</p>` + buildForm(base),
-      400);
+      400,
+    );
   }
 
   const note = (form.get("note") as string | null)?.trim() || null;

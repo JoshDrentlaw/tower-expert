@@ -6,8 +6,16 @@ import { BattleReport, Build } from "../db/db.ts";
 import { Category, FieldType, STAT_SCHEMA } from "./stat_schema.ts";
 
 const SFXS: [number, string][] = [
-  [1e30, "N"], [1e27, "O"], [1e24, "S"], [1e21, "s"],
-  [1e18, "Q"], [1e15, "q"], [1e12, "T"], [1e9,  "B"], [1e6, "M"], [1e3, "K"],
+  [1e30, "N"],
+  [1e27, "O"],
+  [1e24, "S"],
+  [1e21, "s"],
+  [1e18, "Q"],
+  [1e15, "q"],
+  [1e12, "T"],
+  [1e9, "B"],
+  [1e6, "M"],
+  [1e3, "K"],
 ];
 
 function fmtNum(n: number | null): string {
@@ -105,7 +113,11 @@ ${body}
 </body></html>`;
 }
 
-function fieldInput(cat: Category, f: { key: string; type: FieldType; options?: string[] }, value: unknown): string {
+function fieldInput(
+  cat: Category,
+  f: { key: string; type: FieldType; options?: string[] },
+  value: unknown,
+): string {
   const name = `${cat.key}.${f.key}`;
   const v = value ?? "";
   if (f.type === "select") {
@@ -130,7 +142,9 @@ function renderSection(cat: Category, data: Record<string, Record<string, unknow
     const cells = cat.fields.map((f) =>
       `<div><label>${esc(f.label)}</label>${fieldInput(cat, f, catData[f.key])}</div>`
     ).join("");
-    return `<fieldset><legend>${esc(cat.title)}</legend><div class="grid">${cells}</div></fieldset>`;
+    return `<fieldset><legend>${
+      esc(cat.title)
+    }</legend><div class="grid">${cells}</div></fieldset>`;
   }
 
   // Upgrades in col 1 (DOM-first = tab-first), enhancements in col 2 (DOM-second).
@@ -144,7 +158,9 @@ function renderSection(cat: Category, data: Record<string, Record<string, unknow
   const enhCells = cat.fields.map((f, i) => {
     if (!f.enhancement) return "";
     return `<div style="grid-column:2;grid-row:${i + 2}">
-      <label>${esc(f.enhancement.label)}</label>${fieldInput(cat, f.enhancement, catData[f.enhancement.key])}
+      <label>${esc(f.enhancement.label)}</label>${
+      fieldInput(cat, f.enhancement, catData[f.enhancement.key])
+    }
     </div>`;
   }).join("");
 
@@ -175,7 +191,9 @@ export function buildForm(base: string, opts: { build?: Build; parentId?: number
   <input type="hidden" name="parent_build_id" value="${esc(parentId)}">
   ${respecNote}
   <div class="meta">
-    <div><label>Label</label><input type="text" name="label" value="${esc(defaultLabel)}" placeholder="fire crit v3" required></div>
+    <div><label>Label</label><input type="text" name="label" value="${
+    esc(defaultLabel)
+  }" placeholder="fire crit v3" required></div>
     <div><label>Note</label><input type="text" name="note" placeholder="optional context"></div>
   </div>
   ${sections}
@@ -242,9 +260,11 @@ export function reportsList(base: string, reports: BattleReport[]): string {
       <td>${r.wave?.toLocaleString() ?? "—"}</td>
       <td>${fmtNum(r.coins)}</td>
       <td class="hint">${fmtDuration(r.duration_s)}</td>
-      <td>${r.build_id
-        ? `<a href="${base}/builds/${r.build_id}">#${r.build_id} ${esc(r.build_label ?? "")}</a>`
-        : "—"}</td>
+      <td>${
+    r.build_id
+      ? `<a href="${base}/builds/${r.build_id}">#${r.build_id} ${esc(r.build_label ?? "")}</a>`
+      : "—"
+  }</td>
     </tr>`).join("");
   return `<table>
     <thead><tr><th>#</th><th>Date</th><th>Tier</th><th>Wave</th><th>Coins</th><th>Duration</th><th>Build</th></tr></thead>
@@ -255,16 +275,23 @@ export function reportsList(base: string, reports: BattleReport[]): string {
 export function reportDetail(base: string, r: BattleReport): string {
   const br = r.parsed["battle_report"] ?? {};
   const summary: [string, string][] = [
-    ["Occurred",    esc(new Date(r.occurred_at).toLocaleString())],
-    ["Tier",        esc(r.tier?.toString() ?? "—")],
-    ["Wave",        esc(r.wave?.toLocaleString() ?? "—")],
+    ["Occurred", esc(new Date(r.occurred_at).toLocaleString())],
+    ["Tier", esc(r.tier?.toString() ?? "—")],
+    ["Wave", esc(r.wave?.toLocaleString() ?? "—")],
     ["Coins Earned", esc(br["Coins Earned"] ?? fmtNum(r.coins))],
     ["Coins / Hour", esc(br["Coins Per Hour"] ?? "—")],
     ["Cells Earned", esc(br["Cells Earned"] ?? "—")],
-    ["Real Time",   esc(br["Real Time"] ?? fmtDuration(r.duration_s))],
-    ["Killed By",   esc(br["Killed By"] ?? "—")],
+    ["Real Time", esc(br["Real Time"] ?? fmtDuration(r.duration_s))],
+    ["Killed By", esc(br["Killed By"] ?? "—")],
     ...(r.build_id
-      ? [["Build", `<a href="${base}/builds/${r.build_id}" style="color:var(--accent)">#${r.build_id} ${esc(r.build_label ?? "")}</a>`] as [string, string]]
+      ? [
+        [
+          "Build",
+          `<a href="${base}/builds/${r.build_id}" style="color:var(--accent)">#${r.build_id} ${
+            esc(r.build_label ?? "")
+          }</a>`,
+        ] as [string, string],
+      ]
       : []),
   ];
   const summaryRows = summary
@@ -273,7 +300,11 @@ export function reportDetail(base: string, r: BattleReport): string {
   return `
     <table style="width:auto;margin-bottom:1.5rem;font-size:.88rem;">${summaryRows}</table>
     <pre>${esc(JSON.stringify(r.parsed, null, 2))}</pre>
-    ${r.raw
-      ? `<details style="margin-top:1rem;"><summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">raw paste</summary><pre style="margin-top:.5rem">${esc(r.raw)}</pre></details>`
-      : ""}`;
+    ${
+    r.raw
+      ? `<details style="margin-top:1rem;"><summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">raw paste</summary><pre style="margin-top:.5rem">${
+        esc(r.raw)
+      }</pre></details>`
+      : ""
+  }`;
 }

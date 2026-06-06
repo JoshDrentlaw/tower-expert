@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.7.5"
+
+      - name: Check formatting
+        run: deno fmt --check
+
+      - name: Lint
+        run: deno lint
+
+      - name: Type check
+        run: deno check main.ts
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push'
+    runs-on: self-hosted
+    steps:
+      - name: Pull latest and restart containers
+        run: |
+          cd /srv/games/tower-expert
+          git fetch
+          git reset --hard origin/main
+          docker compose up --build -d

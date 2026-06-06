@@ -53,7 +53,9 @@ export async function insertBuild(b: {
 }): Promise<number> {
   const rows = await sql<{ id: number }[]>`
     insert into builds (label, note, parent_build_id, data)
-    values (${b.label}, ${b.note}, ${b.parent_build_id}, ${sql.json(b.data)})
+    values (${b.label}, ${b.note}, ${b.parent_build_id}, ${
+    sql.json(b.data as Parameters<typeof sql.json>[0])
+  })
     returning id`;
   return rows[0].id;
 }
@@ -106,7 +108,7 @@ export async function insertBattleReport(r: {
   const rows = await sql<{ id: number }[]>`
     insert into battle_reports (build_id, occurred_at, tier, wave, coins, duration_s, parsed, raw)
     values (${r.build_id}, ${r.occurred_at}, ${r.tier}, ${r.wave}, ${r.coins},
-            ${r.duration_s}, ${sql.json(r.parsed)}, ${r.raw})
+            ${r.duration_s}, ${sql.json(r.parsed as Parameters<typeof sql.json>[0])}, ${r.raw})
     returning id`;
   return rows[0].id;
 }
