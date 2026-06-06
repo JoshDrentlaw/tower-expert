@@ -73,7 +73,7 @@ const STYLE = `
     width: 100%; background: #0b0e13; color: var(--ink); border: 1px solid var(--line);
     border-radius: 6px; padding: .45rem .55rem; font-family: var(--mono); font-size: .9rem;
   }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-dim); }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
   .meta { display: grid; grid-template-columns: 1fr 2fr; gap: .75rem; margin-bottom: 1rem; }
   .actions { display: flex; gap: .75rem; align-items: center; margin-top: .5rem; }
   button { background: var(--accent); color: #1a1408; border: 0; border-radius: 6px;
@@ -125,14 +125,18 @@ function fieldInput(
     const opts = (f.options ?? [])
       .map((o) => `<option value="${esc(o)}"${o === v ? " selected" : ""}>${esc(o)}</option>`)
       .join("");
-    return `<select name="${esc(name)}"><option value="">—</option>${opts}</select>`;
+    return `<select id="${esc(name)}" name="${
+      esc(name)
+    }"><option value="">—</option>${opts}</select>`;
   }
   if (f.type === "bool") {
-    return `<input type="checkbox" name="${esc(name)}"${v ? " checked" : ""}>`;
+    return `<input id="${esc(name)}" type="checkbox" name="${esc(name)}"${v ? " checked" : ""}>`;
   }
   const inputType = f.type === "text" ? "text" : "number";
   const step = f.type === "number" ? ' step="any"' : "";
-  return `<input type="${inputType}"${step} name="${esc(name)}" value="${esc(v)}">`;
+  return `<input id="${esc(name)}" type="${inputType}"${step} name="${esc(name)}" value="${
+    esc(v)
+  }">`;
 }
 
 function renderSection(cat: Category, data: Record<string, Record<string, unknown>>): string {
@@ -141,7 +145,9 @@ function renderSection(cat: Category, data: Record<string, Record<string, unknow
 
   if (!hasEnhancements) {
     const cells = cat.fields.map((f) =>
-      `<div><label>${esc(f.label)}</label>${fieldInput(cat, f, catData[f.key])}</div>`
+      `<div><label for="${esc(`${cat.key}.${f.key}`)}">${esc(f.label)}</label>${
+        fieldInput(cat, f, catData[f.key])
+      }</div>`
     ).join("");
     return `<fieldset><legend>${
       esc(cat.title)
@@ -152,14 +158,16 @@ function renderSection(cat: Category, data: Record<string, Record<string, unknow
   // Explicit grid-row on every cell keeps visual rows aligned without interleaving tab stops.
   const upgradeCells = cat.fields.map((f, i) =>
     `<div style="grid-column:1;grid-row:${i + 2}">
-      <label>${esc(f.label)}</label>${fieldInput(cat, f, catData[f.key])}
+      <label for="${esc(`${cat.key}.${f.key}`)}">${esc(f.label)}</label>${
+      fieldInput(cat, f, catData[f.key])
+    }
     </div>`
   ).join("");
 
   const enhCells = cat.fields.map((f, i) => {
     if (!f.enhancement) return "";
     return `<div style="grid-column:2;grid-row:${i + 2}">
-      <label>${esc(f.enhancement.label)}</label>${
+      <label for="${esc(`${cat.key}.${f.enhancement.key}`)}">${esc(f.enhancement.label)}</label>${
       fieldInput(cat, f.enhancement, catData[f.enhancement.key])
     }
     </div>`;
@@ -221,10 +229,10 @@ export function buildForm(
   ${errorBanner}
   ${respecNote}
   <div class="meta">
-    <div><label>Label</label><input type="text" name="label" value="${
+    <div><label for="label">Label</label><input id="label" type="text" name="label" value="${
     esc(labelValue)
   }" placeholder="fire crit v3" required></div>
-    <div><label>Note</label><input type="text" name="note" value="${
+    <div><label for="note">Note</label><input id="note" type="text" name="note" value="${
     esc(noteValue)
   }" placeholder="optional context"></div>
   </div>
@@ -276,8 +284,8 @@ export function reportForm(
   <p class="hint">Paste your after-run battle report below. Tier, wave, coins, and duration are extracted automatically.</p>
   <div class="meta">
     <div>
-      <label>Build (optional)</label>
-      <select name="build_id">
+      <label for="build_id">Build (optional)</label>
+      <select id="build_id" name="build_id">
         <option value="">— no build linked —</option>
         ${buildOptions}
       </select>
@@ -285,8 +293,8 @@ export function reportForm(
     <div></div>
   </div>
   <div style="margin-bottom:1rem;">
-    <label>Battle Report Paste</label>
-    <textarea name="raw" rows="22" placeholder="Paste your after-run report here..." style="font-size:.78rem;line-height:1.5;resize:vertical;">${
+    <label for="raw">Battle Report Paste</label>
+    <textarea id="raw" name="raw" rows="22" placeholder="Paste your after-run report here..." style="font-size:.78rem;line-height:1.5;resize:vertical;">${
     esc(opts.raw ?? "")
   }</textarea>
   </div>
