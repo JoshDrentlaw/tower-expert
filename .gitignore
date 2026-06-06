@@ -1,0 +1,10 @@
+# Secrets / local env (keep .env.example tracked)
+.env
+
+# Claude Code local state — keep .claude/agents/ and CLAUDE.md tracked,
+# ignore machine-local settings and per-agent memory
+.claude/settings.local.json
+.claude/agent-memory-local/
+
+# macOS
+.DS_Store
