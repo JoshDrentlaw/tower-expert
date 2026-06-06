@@ -10,6 +10,10 @@ import {
 import { coerce, STAT_SCHEMA } from "../stat_schema.ts";
 import { buildDetail, buildForm, buildsList, layout } from "../views.ts";
 
+// Maximum character length for a build label. Keeps the DB row sane and
+// prevents label text from overflowing list-view table cells.
+const MAX_LABEL_LENGTH = 200;
+
 function html(base: string, title: string, body: string, status = 200): Response {
   return new Response(layout(base, title, body), {
     status,
@@ -81,6 +85,21 @@ export async function handleSave(base: string, req: Request): Promise<Response> 
         submittedData: data,
       }),
       400,
+    );
+  }
+
+  if (labelRaw.length > MAX_LABEL_LENGTH) {
+    return html(
+      base,
+      "Tower // New Build",
+      buildForm(base, {
+        parentId: parent_build_id ?? undefined,
+        error: `Label is too long (max ${MAX_LABEL_LENGTH} characters).`,
+        submittedLabel: labelRaw,
+        submittedNote: note ?? "",
+        submittedData: data,
+      }),
+      422,
     );
   }
 

@@ -4,6 +4,10 @@ import { getReport, insertBattleReport, listBuilds, listReports } from "../../db
 import { parseReport } from "../report_parser.ts";
 import { layout, reportDetail, reportForm, reportsList } from "../views.ts";
 
+// Hard limit on pasted battle report text. Game reports are ~2–4 KB in practice;
+// 256 KB gives enormous headroom while blocking memory/DB abuse.
+const MAX_RAW_BYTES = 256 * 1024; // 256 KB
+
 function html(base: string, title: string, body: string, status = 200): Response {
   return new Response(layout(base, title, body), {
     status,
@@ -40,6 +44,21 @@ export async function handleReportSave(base: string, req: Request): Promise<Resp
     );
   }
 
+  if (new TextEncoder().encode(raw).length > MAX_RAW_BYTES) {
+    const builds = await listBuilds();
+    return html(
+      base,
+      "Tower // Log Run",
+      reportForm(base, builds, {
+        buildId: buildRaw ?? undefined,
+        error: `Paste is too large (max ${
+          Math.round(MAX_RAW_BYTES / 1024)
+        } KB). Make sure you copied only the after-run report.`,
+      }),
+      413,
+    );
+  }
+
   const p = parseReport(raw);
 
   // Detect a meaningless parse: all scalar fields are null AND every section
@@ -64,9 +83,12 @@ export async function handleReportSave(base: string, req: Request): Promise<Resp
     );
   }
 
+  // p.occurred_at is null when "Battle Date" was missing or unparseable.
+  // Fall back to now() so the NOT NULL DB constraint is satisfied; the
+  // date_inferred computed column (occurred_at ≈ created_at) will flag these rows.
   const id = await insertBattleReport({
     build_id,
-    occurred_at: p.occurred_at,
+    occurred_at: p.occurred_at ?? new Date().toISOString(),
     tier: p.tier,
     wave: p.wave,
     coins: p.coins,

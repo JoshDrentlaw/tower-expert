@@ -63,6 +63,7 @@ export interface BattleReport {
   build_id: number | null;
   build_label?: string | null;
   occurred_at: string;
+  date_inferred: boolean; // true when "Battle Date" was missing/unparseable; occurred_at = insert time
   tier: number | null;
   wave: number | null;
   coins: number | null;
@@ -75,7 +76,8 @@ export interface BattleReport {
 export function listReports(): Promise<BattleReport[]> {
   return sql<BattleReport[]>`
     select r.id, r.build_id, b.label as build_label,
-           r.occurred_at, r.tier, r.wave, r.coins, r.duration_s, r.created_at
+           r.occurred_at, r.tier, r.wave, r.coins, r.duration_s, r.created_at,
+           (abs(extract(epoch from (r.occurred_at - r.created_at))) < 10) as date_inferred
     from battle_reports r
     left join builds b on b.id = r.build_id
     order by r.occurred_at desc
@@ -86,7 +88,8 @@ export async function getReport(id: number): Promise<BattleReport | undefined> {
   const rows = await sql<BattleReport[]>`
     select r.id, r.build_id, b.label as build_label,
            r.occurred_at, r.tier, r.wave, r.coins, r.duration_s,
-           r.parsed, r.raw, r.created_at
+           r.parsed, r.raw, r.created_at,
+           (abs(extract(epoch from (r.occurred_at - r.created_at))) < 10) as date_inferred
     from battle_reports r
     left join builds b on b.id = r.build_id
     where r.id = ${id}`;
@@ -95,7 +98,7 @@ export async function getReport(id: number): Promise<BattleReport | undefined> {
 
 export async function insertBattleReport(r: {
   build_id: number | null;
-  occurred_at: string;
+  occurred_at: string; // caller passes now() when date was missing/unparseable in paste
   tier: number | null;
   wave: number | null;
   coins: number | null;

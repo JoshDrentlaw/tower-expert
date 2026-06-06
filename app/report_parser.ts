@@ -6,7 +6,7 @@
 // ~1e15 but that's acceptable for sorting/charting — exact values stay in `raw`.
 
 export interface ParsedReport {
-  occurred_at: string;
+  occurred_at: string | null; // null when "Battle Date" is missing or unparseable
   tier: number | null;
   wave: number | null;
   coins: number | null;
@@ -36,9 +36,10 @@ function parseDuration(val: string): number | null {
   return s > 0 ? s : null;
 }
 
-function parseBattleDate(val: string): string {
+function parseBattleDate(val: string): string | null {
+  if (!val) return null;
   const d = new Date(val);
-  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+  return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 export function parseReport(raw: string): ParsedReport {

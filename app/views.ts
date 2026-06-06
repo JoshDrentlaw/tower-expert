@@ -279,9 +279,13 @@ export function reportsList(base: string, reports: BattleReport[]): string {
   const rows = reports.map((r) => `
     <tr>
       <td><a href="${base}/reports/${r.id}">#${r.id}</a></td>
-      <td class="hint">${esc(new Date(r.occurred_at).toLocaleString())}</td>
-      <td>${r.tier ?? "—"}</td>
-      <td>${r.wave?.toLocaleString() ?? "—"}</td>
+      <td class="hint">${esc(new Date(r.occurred_at).toLocaleString())}${
+    r.date_inferred
+      ? ' <span title="Battle Date missing or unparseable — using insert time" style="color:#e88;font-size:.7rem;">[?]</span>'
+      : ""
+  }</td>
+      <td>${esc(r.tier?.toString() ?? "—")}</td>
+      <td>${esc(r.wave?.toLocaleString() ?? "—")}</td>
       <td>${fmtNum(r.coins)}</td>
       <td class="hint">${fmtDuration(r.duration_s)}</td>
       <td>${r.build_id
@@ -297,7 +301,13 @@ export function reportsList(base: string, reports: BattleReport[]): string {
 export function reportDetail(base: string, r: BattleReport): string {
   const br = r.parsed["battle_report"] ?? {};
   const summary: [string, string][] = [
-    ["Occurred",    esc(new Date(r.occurred_at).toLocaleString())],
+    [
+      "Occurred",
+      esc(new Date(r.occurred_at).toLocaleString()) +
+      (r.date_inferred
+        ? ' <span title="Battle Date missing or unparseable — using insert time" style="color:#e88;font-size:.8rem;">[date inferred]</span>'
+        : ""),
+    ],
     ["Tier",        esc(r.tier?.toString() ?? "—")],
     ["Wave",        esc(r.wave?.toLocaleString() ?? "—")],
     ["Coins Earned", esc(br["Coins Earned"] ?? fmtNum(r.coins))],
