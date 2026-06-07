@@ -2,9 +2,10 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@1": "1.0.19",
-    "jsr:@std/html@1": "1.0.7",
     "jsr:@std/internal@^1.0.12": "1.0.14",
-    "npm:postgres@3": "3.4.9"
+    "npm:postgres@3": "3.4.9",
+    "npm:preact-render-to-string@6": "6.7.0_preact@10.29.2",
+    "npm:preact@10": "10.29.2"
   },
   "jsr": {
     "@std/assert@1.0.19": {
@@ -13,9 +14,6 @@
         "jsr:@std/internal"
       ]
     },
-    "@std/html@1.0.7": {
-      "integrity": "175c818905a6e75743c69c251395e273d82698e58cfe7dd76268d70e28b8d8fe"
-    },
     "@std/internal@1.0.14": {
       "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
     }
@@ -23,13 +21,23 @@
   "npm": {
     "postgres@3.4.9": {
       "integrity": "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="
+    },
+    "preact-render-to-string@6.7.0_preact@10.29.2": {
+      "integrity": "sha512-Z4WR8fmLMRpdYqJ9i7vrlXSsSrxVJydwrkEXHapexfARbWfGb7vGcnvNQnIzN0cXciMVOlz/XLoiMCi9gUsy9Q==",
+      "dependencies": [
+        "preact"
+      ]
+    },
+    "preact@10.29.2": {
+      "integrity": "sha512-7tNmwg/7mzzAoB/8kSg6Hl37JraAZw3Z3A0JSY7VXlZwo82Xn0G7wKbNNs2qoF4ZEEsQGTwDAroNdqKs1ofJxQ=="
     }
   },
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",
-      "jsr:@std/html@1",
-      "npm:postgres@3"
+      "npm:postgres@3",
+      "npm:preact-render-to-string@6",
+      "npm:preact@10"
     ]
   }
 }
