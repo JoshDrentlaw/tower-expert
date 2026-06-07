@@ -3,28 +3,8 @@
 // (no external fonts/CDN) so it stays fast on the LAN.
 
 import { BattleReport, Build } from "../db/db.ts";
-import { Category, FieldType, STAT_SCHEMA } from "./stat_schema.ts";
-
-const SFXS: [number, string][] = [
-  [1e30, "N"],
-  [1e27, "O"],
-  [1e24, "S"],
-  [1e21, "s"],
-  [1e18, "Q"],
-  [1e15, "q"],
-  [1e12, "T"],
-  [1e9, "B"],
-  [1e6, "M"],
-  [1e3, "K"],
-];
-
-function fmtNum(n: number | null): string {
-  if (n === null || n === undefined) return "—";
-  for (const [threshold, suffix] of SFXS) {
-    if (n >= threshold) return (n / threshold).toFixed(2) + suffix;
-  }
-  return n.toLocaleString();
-}
+import { Category, Field, FieldType, STAT_SCHEMA } from "./stat_schema.ts";
+import { formatNum, type NumUnit } from "./num_format.ts";
 
 function fmtDuration(s: number | null): string {
   if (!s) return "—";
@@ -114,9 +94,17 @@ ${body}
 </body></html>`;
 }
 
+// Hint shown in empty numeric inputs, by unit — teaches the accepted shorthand.
+const NUM_PLACEHOLDER: Record<NumUnit, string> = {
+  num: "e.g. 869.03M",
+  mult: "e.g. ×1.012",
+  pct: "e.g. 56.4%",
+  sec: "e.g. 14s",
+};
+
 function fieldInput(
   cat: Category,
-  f: { key: string; type: FieldType; options?: string[] },
+  f: { key: string; type: FieldType; unit?: NumUnit; options?: string[] },
   value: unknown,
 ): string {
   const name = `${cat.key}.${f.key}`;
@@ -132,11 +120,22 @@ function fieldInput(
   if (f.type === "bool") {
     return `<input id="${esc(name)}" type="checkbox" name="${esc(name)}"${v ? " checked" : ""}>`;
   }
-  const inputType = f.type === "text" ? "text" : "number";
-  const step = f.type === "number" ? ' step="any"' : "";
-  return `<input id="${esc(name)}" type="${inputType}"${step} name="${esc(name)}" value="${
-    esc(v)
-  }">`;
+  if (f.type === "text") {
+    return `<input id="${esc(name)}" type="text" name="${esc(name)}" value="${esc(v)}">`;
+  }
+  // Numeric (int/number): a TEXT input — not type=number, which hard-blocks
+  // decimals and the magnitude shorthand the game shows ("869.03M"). The stored
+  // value is echoed back in the same human format, so prefill/respec and
+  // validation-error re-renders read the way you'd type them.
+  const unit = f.unit ?? "num";
+  let display = "";
+  if (value !== null && value !== undefined && value !== "") {
+    const n = typeof value === "number" ? value : Number(value);
+    display = Number.isFinite(n) ? formatNum(n, unit) : String(value);
+  }
+  return `<input id="${esc(name)}" type="text" inputmode="text" autocomplete="off" ` +
+    `autocapitalize="off" spellcheck="false" name="${esc(name)}" value="${esc(display)}" ` +
+    `placeholder="${esc(NUM_PLACEHOLDER[unit])}">`;
 }
 
 function renderSection(cat: Category, data: Record<string, Record<string, unknown>>): string {
@@ -257,10 +256,63 @@ export function buildsList(base: string, builds: Build[]): string {
     <tbody>${rows}</tbody></table>`;
 }
 
+// Render one stored value the way the game shows it: numbers through formatNum
+// (per unit), everything else as escaped text. Returns null for absent values
+// so the caller can skip the row entirely.
+function displayValue(
+  f: { type: FieldType; unit?: NumUnit },
+  value: unknown,
+): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (f.type === "int" || f.type === "number") {
+    const n = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(n) ? formatNum(n, f.unit ?? "num") : esc(String(value));
+  }
+  if (f.type === "bool") return value ? "yes" : "no";
+  return esc(String(value));
+}
+
+// A read-only, schema-driven view of one category's stored stats. Only fields
+// that actually have a value are shown; an empty category renders nothing.
+function detailSection(cat: Category, data: Record<string, Record<string, unknown>>): string {
+  const catData = (data[cat.key] as Record<string, unknown> | undefined) ?? {};
+  const rows: string[] = [];
+  for (const f of cat.fields as Field[]) {
+    const v = displayValue(f, catData[f.key]);
+    if (v !== null) {
+      rows.push(
+        `<tr><th style="width:200px;font-weight:normal;color:var(--muted)">${
+          esc(f.label)
+        }</th><td style="font-family:var(--mono)">${v}</td></tr>`,
+      );
+    }
+    if (f.enhancement) {
+      const ev = displayValue(f.enhancement, catData[f.enhancement.key]);
+      if (ev !== null) {
+        rows.push(
+          `<tr><th style="width:200px;font-weight:normal;color:var(--muted)">${
+            esc(f.enhancement.label)
+          }</th><td style="font-family:var(--mono)">${ev}</td></tr>`,
+        );
+      }
+    }
+  }
+  if (rows.length === 0) return "";
+  return `<fieldset><legend>${esc(cat.title)}</legend>
+    <table style="width:auto;font-size:.88rem;">${rows.join("")}</table>
+  </fieldset>`;
+}
+
 export function buildDetail(base: string, b: Build): string {
+  const sections = STAT_SCHEMA.map((cat) => detailSection(cat, b.data)).join("");
+  const body = sections ||
+    `<p class="hint">This snapshot has no stored stats.</p>`;
   return `
     <p><a href="${base}/builds/new?from=${b.id}" style="color:var(--accent);font-family:var(--mono)">→ respec from this build</a></p>
-    <pre>${esc(JSON.stringify(b.data, null, 2))}</pre>`;
+    ${body}
+    <details style="margin-top:1rem;"><summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">raw data</summary><pre style="margin-top:.5rem">${
+    esc(JSON.stringify(b.data, null, 2))
+  }</pre></details>`;
 }
 
 export function reportForm(
@@ -316,7 +368,7 @@ export function reportsList(base: string, reports: BattleReport[]): string {
   }</td>
       <td>${esc(r.tier?.toString() ?? "—")}</td>
       <td>${esc(r.wave?.toLocaleString() ?? "—")}</td>
-      <td>${fmtNum(r.coins)}</td>
+      <td>${formatNum(r.coins)}</td>
       <td class="hint">${fmtDuration(r.duration_s)}</td>
       <td>${
     r.build_id
@@ -342,7 +394,7 @@ export function reportDetail(base: string, r: BattleReport): string {
     ],
     ["Tier", esc(r.tier?.toString() ?? "—")],
     ["Wave", esc(r.wave?.toLocaleString() ?? "—")],
-    ["Coins Earned", esc(br["Coins Earned"] ?? fmtNum(r.coins))],
+    ["Coins Earned", esc(br["Coins Earned"] ?? formatNum(r.coins))],
     ["Coins / Hour", esc(br["Coins Per Hour"] ?? "—")],
     ["Cells Earned", esc(br["Cells Earned"] ?? "—")],
     ["Real Time", esc(br["Real Time"] ?? fmtDuration(r.duration_s))],

@@ -52,12 +52,12 @@ export async function handleSave(base: string, req: Request): Promise<Response> 
     const section: Record<string, unknown> = {};
     for (const f of cat.fields) {
       const raw = form.get(`${cat.key}.${f.key}`) as string | null;
-      const value = coerce(f.type, raw);
+      const value = coerce(f.type, raw, f.unit);
       if (value !== null) section[f.key] = value;
 
       if (f.enhancement) {
         const enhRaw = form.get(`${cat.key}.${f.enhancement.key}`) as string | null;
-        const enhValue = coerce(f.enhancement.type, enhRaw);
+        const enhValue = coerce(f.enhancement.type, enhRaw, f.enhancement.unit);
         if (enhValue !== null) section[f.enhancement.key] = enhValue;
       }
     }

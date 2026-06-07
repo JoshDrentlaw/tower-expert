@@ -58,41 +58,62 @@ Deno.test("coerce int: integer string → integer", () => {
   assertEquals(coerce("int", "42"), 42);
 });
 
-Deno.test("coerce int: float string truncates (3.9 → 3)", () => {
-  assertEquals(coerce("int", "3.9"), 3);
+// Numeric fields now accept the game's magnitude shorthand and keep decimals
+// (no truncation) — that's the whole point of the human-number change.
+Deno.test("coerce int: keeps decimals now (3.9 → 3.9, no truncation)", () => {
+  assertEquals(coerce("int", "3.9"), 3.9);
 });
 
 Deno.test("coerce int: negative integer", () => {
   assertEquals(coerce("int", "-5"), -5);
 });
 
-Deno.test("coerce int: negative float truncates toward zero (-3.9 → -3)", () => {
-  // Math.trunc(-3.9) = -3, not -4
-  assertEquals(coerce("int", "-3.9"), -3);
+Deno.test("coerce int: negative decimal kept (-3.9 → -3.9)", () => {
+  assertEquals(coerce("int", "-3.9"), -3.9);
+});
+
+Deno.test("coerce int: magnitude shorthand 869.03M → 869030000", () => {
+  assertEquals(coerce("int", "869.03M"), 869030000);
+});
+
+Deno.test("coerce int: thousands separators tolerated (12,345 → 12345)", () => {
+  assertEquals(coerce("int", "12,345"), 12345);
 });
 
 Deno.test("coerce int: non-numeric string → null", () => {
   assertEquals(coerce("int", "abc"), null);
 });
 
-// QUIRK: Number('   ') === 0, so whitespace-only coerces to 0, not null.
-// This is a latent footgun — a blank form field that isn't truly empty could
-// silently write 0 to the DB. Pinning current behavior; fix if guard is added.
-Deno.test("coerce int: whitespace-only '   ' → 0 (quirk: Number('   ') === 0)", () => {
-  assertEquals(coerce("int", "   "), 0);
+// The whitespace footgun is gone: the shorthand parser trims first, so a field
+// that's blank-but-not-empty yields null instead of silently writing 0.
+Deno.test("coerce int: whitespace-only '   ' → null (parser trims first)", () => {
+  assertEquals(coerce("int", "   "), null);
 });
 
-// QUIRK: Number('0x10') === 16, so hex strings coerce to their integer value.
-// Form inputs in browsers don't produce hex, but this could matter if data
-// arrives via copy-paste or an API. Pinning current behavior.
-Deno.test("coerce int: hex string '0x10' → 16 (quirk: Number coerces hex)", () => {
-  assertEquals(coerce("int", "0x10"), 16);
+// Hex and scientific notation are NOT part of the game's number syntax, so the
+// magnitude parser rejects them (no longer the old Number() coercion).
+Deno.test("coerce int: hex string '0x10' → null (not game shorthand)", () => {
+  assertEquals(coerce("int", "0x10"), null);
 });
 
-// QUIRK: Number('1e2') === 100, so scientific notation coerces correctly.
-// Same caveat as hex — unusual form input, but documents actual behavior.
-Deno.test("coerce int: scientific notation '1e2' → 100 (quirk: Number coerces sci notation)", () => {
-  assertEquals(coerce("int", "1e2"), 100);
+Deno.test("coerce int: scientific notation '1e2' → null (not game shorthand)", () => {
+  assertEquals(coerce("int", "1e2"), null);
+});
+
+// ---------------------------------------------------------------------------
+// coerce — unit-aware numeric input (the decorations the game shows)
+// ---------------------------------------------------------------------------
+
+Deno.test("coerce pct: strips trailing % (56.4% → 56.4)", () => {
+  assertEquals(coerce("number", "56.4%", "pct"), 56.4);
+});
+
+Deno.test("coerce mult: strips leading × (×1.012 → 1.012)", () => {
+  assertEquals(coerce("number", "×1.012", "mult"), 1.012);
+});
+
+Deno.test("coerce sec: strips trailing s (14.00s → 14)", () => {
+  assertEquals(coerce("number", "14.00s", "sec"), 14);
 });
 
 // ---------------------------------------------------------------------------

@@ -13,6 +13,38 @@ Core design idea: a respec is a _new_ snapshot (history is preserved). Every sta
 `builds.data` (jsonb), so changing what you track never requires a DB migration —
 `app/stat_schema.ts` is the application's schema, not the database's.
 
+## Game data — ALWAYS use the Fandom MediaWiki Action API, never fetch pages directly
+
+The authoritative source for _The Tower_ game data (stats, formulas, units, modules, enemies) is the
+**Fandom wiki**, and it is the backbone of the "expert" features as they grow. There is exactly one
+correct way to read it:
+
+- **Use the MediaWiki Action API:** `https://the-tower-idle-tower-defense.fandom.com/api.php`
+  (MediaWiki 1.43+). Always pass `format=json&formatversion=2`.
+- **Do NOT `WebFetch` the human article URLs** (`/wiki/<Page>`). Fandom returns **503** to that path
+  — it is blocked, not flaky. Retrying or using a different prompt will not help. The `api.php`
+  endpoint is the supported path and works.
+
+Typical flow (titles are per-stat pages like `Critical Hits`, `Defense Percent`, `Attack Speed` —
+there is no single `Workshop` page):
+
+```
+# 1. Find the page title
+GET api.php?action=query&list=search&srsearch=<terms>&srlimit=10&format=json&formatversion=2
+# 2. Read its source
+GET api.php?action=parse&page=<Title>&prop=wikitext&format=json&formatversion=2
+# Sanity-check the endpoint:
+GET api.php?action=query&meta=siteinfo&siprop=general&format=json&formatversion=2
+```
+
+Notes:
+
+- **Read-only.** Query/parse/search freely. No login, no edits, no writes to the community wiki.
+- `WebFetch` runs the API response through a summarizer, so it is **not byte-exact** — ask it to
+  quote specific fields (e.g. an exact wikitext value) rather than trusting a paraphrase.
+- This convention is **not optional** and applies everywhere in this project — any agent, any task
+  that needs game data goes through `api.php`.
+
 ## Layout
 
 ```
@@ -83,7 +115,6 @@ Requires a `.env` with `DATABASE_URL`. `BASE_PATH` defaults to `/tower`.
   sequenced manually.
 - **`listBuilds`/`listReports` hard-cap at 100 rows** with no pagination — older rows silently
   disappear from list views and the report build-picker.
-- **Detail pages dump raw `JSON.stringify(data)`** rather than a schema-driven view.
 - **Accessibility gaps** in the forms (focus contrast, label `for`/`id` associations, mobile reflow)
   are known and not yet addressed.
 

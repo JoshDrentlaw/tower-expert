@@ -10,12 +10,17 @@
 // then enhancement inputs (matching the Enhancements screen). Enhancement
 // values are stored flat in the same category namespace with their own key.
 
+import { type NumUnit, parseHuman } from "./num_format.ts";
+
 export type FieldType = "int" | "number" | "text" | "bool" | "select";
 
 export interface Enhancement {
   key: string;
   label: string;
   type: FieldType;
+  // How the numeric value is parsed on input and formatted on display.
+  // Omitted = "num" (plain magnitude). See app/num_format.ts.
+  unit?: NumUnit;
   options?: string[];
 }
 
@@ -23,6 +28,7 @@ export interface Field {
   key: string;
   label: string;
   type: FieldType;
+  unit?: NumUnit;
   options?: string[];
   enhancement?: Enhancement;
 }
@@ -35,8 +41,14 @@ export interface Category {
 
 const RARITY = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancestral"];
 
-// Shorthand for the common int enhancement (all enhancements are multipliers).
-const enh = (key: string, label: string): Enhancement => ({ key, label, type: "int" });
+// Shorthand for the common enhancement (all enhancements are × multipliers,
+// e.g. ×1.012 — so they're decimal-valued and formatted as multipliers).
+const enh = (key: string, label: string): Enhancement => ({
+  key,
+  label,
+  type: "number",
+  unit: "mult",
+});
 
 export const STAT_SCHEMA: Category[] = [
   {
@@ -50,41 +62,45 @@ export const STAT_SCHEMA: Category[] = [
         type: "int",
         enhancement: enh("attack_speed_enh", "Attack Speed ×"),
       },
-      { key: "crit_chance", label: "Crit Chance", type: "int" },
+      { key: "crit_chance", label: "Crit Chance", type: "number", unit: "pct" },
       {
         key: "crit_factor",
         label: "Crit Factor",
-        type: "int",
+        type: "number",
+        unit: "mult",
         enhancement: enh("crit_factor_enh", "Crit Factor ×"),
       },
       { key: "range", label: "Range", type: "int" },
       {
         key: "damage_per_meter",
         label: "Damage / Meter",
-        type: "int",
+        type: "number",
+        unit: "mult",
         enhancement: enh("damage_per_meter_enh", "Damage / Meter ×"),
       },
-      { key: "multishot_chance", label: "Multishot Chance", type: "int" },
+      { key: "multishot_chance", label: "Multishot Chance", type: "number", unit: "pct" },
       { key: "multishot_targets", label: "Multishot Targets", type: "int" },
-      { key: "rapid_fire_chance", label: "Rapid Fire Chance", type: "int" },
-      { key: "rapid_fire_dur", label: "Rapid Fire Duration", type: "int" },
-      { key: "bounce_chance", label: "Bounce Shot Chance", type: "int" },
+      { key: "rapid_fire_chance", label: "Rapid Fire Chance", type: "number", unit: "pct" },
+      { key: "rapid_fire_dur", label: "Rapid Fire Duration", type: "number", unit: "sec" },
+      { key: "bounce_chance", label: "Bounce Shot Chance", type: "number", unit: "pct" },
       { key: "bounce_targets", label: "Bounce Shot Targets", type: "int" },
       { key: "bounce_range", label: "Bounce Shot Range", type: "int" },
-      { key: "super_crit_chance", label: "Super Crit Chance", type: "int" },
+      { key: "super_crit_chance", label: "Super Crit Chance", type: "number", unit: "pct" },
       {
         key: "super_crit_multi",
         label: "Super Crit Multi",
-        type: "int",
+        type: "number",
+        unit: "mult",
         enhancement: enh("super_crit_multi_enh", "Super Crit Multi ×"),
       },
       {
         key: "rend_chance",
         label: "Rend Armor Chance",
-        type: "int",
+        type: "number",
+        unit: "pct",
         enhancement: enh("rend_enh", "Rend Armor ×"),
       },
-      { key: "rend_mult", label: "Rend Armor Mult", type: "int" },
+      { key: "rend_mult", label: "Rend Armor Mult", type: "number", unit: "mult" },
     ],
   },
   {
@@ -98,22 +114,22 @@ export const STAT_SCHEMA: Category[] = [
         type: "int",
         enhancement: enh("health_regen_enh", "Health Regen ×"),
       },
-      { key: "defense_percent", label: "Defense %", type: "int" },
+      { key: "defense_percent", label: "Defense %", type: "number", unit: "pct" },
       {
         key: "defense_absolute",
         label: "Defense Absolute",
         type: "int",
         enhancement: enh("defense_absolute_enh", "Defense Absolute ×"),
       },
-      { key: "thorns", label: "Thorn Damage", type: "int" },
-      { key: "lifesteal", label: "Lifesteal", type: "int" },
-      { key: "knockback_chance", label: "Knockback Chance", type: "int" },
+      { key: "thorns", label: "Thorn Damage", type: "number", unit: "pct" },
+      { key: "lifesteal", label: "Lifesteal", type: "number", unit: "pct" },
+      { key: "knockback_chance", label: "Knockback Chance", type: "number", unit: "pct" },
       { key: "knockback_force", label: "Knockback Force", type: "int" },
       { key: "orbs", label: "Orbs", type: "int", enhancement: enh("orb_size_enh", "Orb Size ×") },
       { key: "orb_speed", label: "Orb Speed", type: "int" },
       { key: "shockwave_size", label: "Shockwave Size", type: "int" },
-      { key: "shockwave_freq", label: "Shockwave Frequency", type: "int" },
-      { key: "land_mine_chance", label: "Land Mine Chance", type: "int" },
+      { key: "shockwave_freq", label: "Shockwave Frequency", type: "number", unit: "sec" },
+      { key: "land_mine_chance", label: "Land Mine Chance", type: "number", unit: "pct" },
       {
         key: "land_mine_damage",
         label: "Land Mine Damage",
@@ -121,14 +137,15 @@ export const STAT_SCHEMA: Category[] = [
         enhancement: enh("land_mine_damage_enh", "Land Mine Damage ×"),
       },
       { key: "land_mine_radius", label: "Land Mine Radius", type: "int" },
-      { key: "death_defy", label: "Death Defy", type: "int" },
+      { key: "death_defy", label: "Death Defy", type: "number", unit: "pct" },
       {
         key: "wall_health",
         label: "Wall Health",
-        type: "int",
+        type: "number",
+        unit: "pct", // % of tower health, 20% → 200% (verified against wiki)
         enhancement: enh("wall_health_enh", "Wall Health ×"),
       },
-      { key: "wall_rebuild", label: "Wall Rebuild", type: "int" },
+      { key: "wall_rebuild", label: "Wall Rebuild", type: "number", unit: "sec" },
     ],
   },
   {
@@ -138,7 +155,8 @@ export const STAT_SCHEMA: Category[] = [
       {
         key: "cash_bonus",
         label: "Cash Bonus",
-        type: "int",
+        type: "number",
+        unit: "mult", // shown as ×1.00 → ×2.49 in-game (verified against wiki)
         enhancement: enh("cash_bonus_enh", "Cash Bonus ×"),
       },
       { key: "cash_wave", label: "Cash / Wave", type: "int" },
@@ -149,21 +167,23 @@ export const STAT_SCHEMA: Category[] = [
         enhancement: enh("coin_bonus_enh", "Coin Bonus ×"),
       },
       { key: "coins_wave", label: "Coins / Wave", type: "int" },
-      { key: "interest", label: "Interest", type: "int" },
+      { key: "interest", label: "Interest", type: "number", unit: "pct" },
       {
         key: "recovery_amount",
         label: "Recovery Amount",
-        type: "int",
+        type: "number",
+        unit: "pct",
         enhancement: enh("packages_enh", "Packages ×"),
       },
       {
         key: "free_attack",
         label: "Free Attack Upgrades",
-        type: "int",
+        type: "number",
+        unit: "pct",
         enhancement: enh("free_upgrades_enh", "Free Upgrades ×"),
       },
-      { key: "free_defense", label: "Free Defense Upgrades", type: "int" },
-      { key: "free_utility", label: "Free Utility Upgrades", type: "int" },
+      { key: "free_defense", label: "Free Defense Upgrades", type: "number", unit: "pct" },
+      { key: "free_utility", label: "Free Utility Upgrades", type: "number", unit: "pct" },
       { key: "cells_kill_bonus", label: "Cells / Kill Bonus (Enh)", type: "int" },
       { key: "enemy_atk_level_skips", label: "Enemy Atk Level Skips (Enh)", type: "int" },
       { key: "enemy_hp_level_skips", label: "Enemy HP Level Skips (Enh)", type: "int" },
@@ -201,14 +221,16 @@ export const STAT_SCHEMA: Category[] = [
   },
 ];
 
-// Coerce a raw form string into the right JS type for storage.
-export function coerce(type: FieldType, raw: string | null): unknown {
+// Coerce a raw form string into the right JS type for storage. Numeric fields
+// (int/number) accept human shorthand — "869.03M", "56.4%", "×1.012", "14s" —
+// parsed per the field's `unit` (see app/num_format.ts). Unparseable numeric
+// input yields null (the field is simply not stored).
+export function coerce(type: FieldType, raw: string | null, unit: NumUnit = "num"): unknown {
   if (raw === null || raw === "") return null;
   switch (type) {
     case "int":
-      return Number.isFinite(Number(raw)) ? Math.trunc(Number(raw)) : null;
     case "number":
-      return Number.isFinite(Number(raw)) ? Number(raw) : null;
+      return parseHuman(raw, unit);
     case "bool":
       return raw === "on" || raw === "true";
     default:
