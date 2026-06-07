@@ -1,0 +1,33 @@
+// render_test.tsx — the component layer renders the schema correctly, with no
+// server or DB. Guards the JSX migration (and future schema/layout changes).
+
+import { assertStringIncludes } from "@std/assert";
+import { renderToString } from "preact-render-to-string";
+import { makeFormatter } from "../services/format.ts";
+import type { RequestContext } from "../services/ctx.ts";
+import { BuildForm } from "./builds.tsx";
+
+const ctx: RequestContext = { base: "/tower", locale: "en", fmt: makeFormatter("en") };
+
+Deno.test("BuildForm renders the schema: fields, all 9 UW sections, module columns", () => {
+  const html = renderToString(<BuildForm ctx={ctx} opts={{}} />);
+  assertStringIncludes(html, 'action="/tower/builds"');
+  assertStringIncludes(html, 'name="workshop_attack.damage"');
+  assertStringIncludes(html, "UW — Golden Tower");
+  assertStringIncludes(html, "UW — Chrono Field"); // the 9th, newly-added UW
+  assertStringIncludes(html, 'class="mod-col"');
+  assertStringIncludes(html, 'name="modules.cannon_sub6"'); // 6th substat slot
+});
+
+Deno.test("BuildForm echoes a submitted value back in the field's human format", () => {
+  const html = renderToString(
+    <BuildForm ctx={ctx} opts={{ submittedData: { workshop_attack: { damage: 869030000 } } }} />,
+  );
+  assertStringIncludes(html, 'value="869.03M"');
+});
+
+Deno.test("BuildForm shows an error banner with role=alert", () => {
+  const html = renderToString(<BuildForm ctx={ctx} opts={{ error: "Label is required." }} />);
+  assertStringIncludes(html, 'role="alert"');
+  assertStringIncludes(html, "Label is required.");
+});

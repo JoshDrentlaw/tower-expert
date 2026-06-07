@@ -60,27 +60,32 @@ Notes:
 ## Layout
 
 ```
-main.ts                  HTTP server + router (URLPattern), BASE_PATH-aware
+main.ts                  HTTP server + router (URLPattern), BASE_PATH-aware; builds the per-request ctx.
 app/
   stat_schema.ts         Single source of truth for the build form (categories/fields). EDIT ME to change tracked stats.
-  views.ts               Server-rendered HTML — layout, forms, list, detail. Includes esc() and the embedded CSS.
+  num_format.ts          Pure number parse/format (game magnitude suffixes, %, ×, s).
   report_parser.ts       Pure text → ParsedReport parser for pasted battle reports.
-  routes/builds.ts       GET list/new/detail, POST save. Coerces form data via STAT_SCHEMA.
-  routes/reports.ts      GET list/new/detail, POST save. Parses paste, rejects meaningless input.
+  components/            Preact/JSX server-rendered views (.tsx): Layout, fields, builds, reports.
+  services/             ctx.ts (RequestContext), render.tsx (renderPage), format.ts (Formatter).
+  routes/builds.tsx      GET list/new/detail, POST save. Coerces form data via STAT_SCHEMA.
+  routes/reports.tsx     GET list/new/detail, POST save. Parses paste, rejects meaningless input.
 db/
   db.ts                  postgres.js data-access layer (Build/BattleReport CRUD).
   migrations/001_init.sql Single migration: builds + battle_reports tables (jsonb columns).
 docker-compose.yml       Local dev Postgres (runs 001_init.sql on first volume init only).
 ```
 
+Views are **Preact components** rendered to a string (`preact-render-to-string`); JSX auto-escapes,
+so there is no hand-rolled `esc()`. The old `app/views.ts` string-template layer is gone.
+
 ## Commands
 
 ```bash
 deno task dev      # run with --watch (needs .env with DATABASE_URL)
 deno task start    # run once
-deno check main.ts # type-check (see "Known issues" — 2 pre-existing db.ts errors)
+deno check main.ts # type-check (clean)
 deno fmt           # format (lineWidth 100, configured in deno.json)
-deno test          # run tests (none exist yet — see Testing)
+deno test app/     # run tests (pure modules + a component render test; no DB needed)
 ```
 
 Requires a `.env` with `DATABASE_URL`. `BASE_PATH` defaults to `/tower`.
@@ -89,26 +94,28 @@ Requires a `.env` with `DATABASE_URL`. `BASE_PATH` defaults to `/tower`.
 
 | Method | Path           | Handler (file)                                                   |
 | ------ | -------------- | ---------------------------------------------------------------- |
-| GET    | `/builds`      | `handleList` (routes/builds.ts)                                  |
+| GET    | `/builds`      | `handleList` (routes/builds.tsx)                                 |
 | GET    | `/builds/new`  | `handleNew` — `?from=latest` or `?from=<id>` to prefill (respec) |
 | POST   | `/builds`      | `handleSave`                                                     |
 | GET    | `/builds/:id`  | `handleDetail`                                                   |
-| GET    | `/reports`     | `handleReportList` (routes/reports.ts)                           |
+| GET    | `/reports`     | `handleReportList` (routes/reports.tsx)                          |
 | GET    | `/reports/new` | `handleReportNew`                                                |
 | POST   | `/reports`     | `handleReportSave`                                               |
 | GET    | `/reports/:id` | `handleReportDetail`                                             |
 
 ## Architecture notes & conventions
 
-- **`STAT_SCHEMA` drives everything.** `views.ts` renders the form from it; `builds.ts` reads form
-  fields by iterating it (unknown fields are silently dropped). Add/remove a stat by editing only
-  `app/stat_schema.ts`. Fields use dot-keyed names (`<category.key>.<field.key>`); paired fields
-  also emit `<category.key>.<enhancement.key>`.
-- **`BASE_PATH` is prop-drilled** as a `base: string` arg through every route and view. All internal
-  hrefs/form actions interpolate it raw. It's env-controlled (never user input). The trailing-slash
-  strip in `main.ts:20` is load-bearing.
-- **Always escape user data in HTML** with `esc()` (`views.ts`). It escapes `& < > " '`. Every
-  string that originates from form input or a paste must pass through it.
+- **`STAT_SCHEMA` drives everything.** The `Section`/`Field` components render the form from it;
+  `routes/builds.tsx` reads form fields by iterating it (unknown fields are silently dropped).
+  Add/remove a stat by editing only `app/stat_schema.ts`. Fields use dot-keyed names
+  (`<category.key>.<field.key>`); paired fields also emit `<category.key>.<enhancement.key>`; fields
+  with a `group` render as columns (Modules).
+- **`BASE_PATH` rides in the per-request `ctx`** (`app/services/ctx.ts`), threaded to every
+  component as `ctx.base` (replacing the old prop-drilled `base` arg). It's env-controlled (never
+  user input). The trailing-slash strip in `main.ts` is load-bearing.
+- **HTML escaping is automatic** — views are Preact components and JSX escapes text + attribute
+  values on render. There is no `esc()`. Keep user/DB data out of `dangerouslySetInnerHTML` (only
+  the static CSS in `Layout.tsx` uses it) and out of URL/`<script>` contexts.
 - **All SQL goes through postgres.js tagged templates** (`sql\`...${val}...\``), which parameterize
   automatically. Never string-concatenate into a query.
 - **`db.ts` throws at module load** if `DATABASE_URL` is unset (fail-fast, intentional). This means
@@ -119,9 +126,6 @@ Requires a `.env` with `DATABASE_URL`. `BASE_PATH` defaults to `/tower`.
 
 ## Known issues / gotchas
 
-- **`deno check` reports 2 pre-existing errors** in `db/db.ts:56` and `:109` (`sql.json()` expecting
-  `JSONValue`, getting `Record<string, unknown>`). Type-checker only; runtime serialization is fine.
-  Not yet fixed — don't be alarmed by them, and don't let new errors hide behind them.
 - **No migration runner.** `001_init.sql` uses bare `CREATE TABLE` (no `IF NOT EXISTS`) and only
   runs on a fresh docker volume. Re-applying against a live DB errors. Any future migration must be
   sequenced manually.
