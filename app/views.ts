@@ -2,6 +2,7 @@
 // Dark "control panel" aesthetic to match a homelab dashboard; dependency-free
 // (no external fonts/CDN) so it stays fast on the LAN.
 
+import { escape } from "@std/html";
 import { BattleReport, Build } from "../db/db.ts";
 import { Category, Field, FieldType, STAT_SCHEMA } from "./stat_schema.ts";
 import { formatNum, type NumUnit } from "./num_format.ts";
@@ -14,13 +15,20 @@ function fmtDuration(s: number | null): string {
   return [h && `${h}h`, m && `${m}m`, `${sec}s`].filter(Boolean).join(" ");
 }
 
+// HTML-escape any value before it goes into markup. Backed by @std/html's
+// `escape` (escapes & < > " '), so we're not maintaining our own escaper.
+//
+// SAFETY CONVENTION — esc() only protects two contexts: element text and
+// DOUBLE-QUOTED attribute values. It is NOT context-aware. So, without
+// exception in this file:
+//   1. Every attribute that holds user/DB data must be double-quoted: value="${esc(x)}".
+//   2. User/DB data must NEVER reach a URL (href/src), <script>, an inline
+//      event handler (onclick=...), or a style="..." context — esc() does not
+//      neutralize javascript: schemes or JS/CSS string breakouts.
+// Interpolated `base` is env-controlled and numeric IDs are numbers, so those
+// are safe in href/style today. Keep it that way.
 function esc(v: unknown): string {
-  return String(v ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+  return escape(String(v ?? ""));
 }
 
 const STYLE = `

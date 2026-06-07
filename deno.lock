@@ -1,8 +1,8 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/html@1": "1.0.7",
     "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:postgres@3": "3.4.9"
   },
@@ -12,6 +12,9 @@
       "dependencies": [
         "jsr:@std/internal"
       ]
+    },
+    "@std/html@1.0.7": {
+      "integrity": "175c818905a6e75743c69c251395e273d82698e58cfe7dd76268d70e28b8d8fe"
     },
     "@std/internal@1.0.14": {
       "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
@@ -25,6 +28,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",
+      "jsr:@std/html@1",
       "npm:postgres@3"
     ]
   }

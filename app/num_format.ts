@@ -49,8 +49,13 @@ function parsePlain(s: string): number | null {
 // Parse a human-typed value into its canonical stored number, per unit.
 // Tolerates the decorations the game shows: a leading "×"/"x", a trailing "%",
 // a trailing unit "s", and a "/m" suffix on per-meter multipliers.
+// Longest legitimate input: "-999.99N" (8 chars) plus decoration ("×", "%", "/meter" etc.).
+// 50 characters is generous headroom; anything beyond that is garbage or abuse.
+const MAX_FIELD_LEN = 50;
+
 export function parseHuman(raw: string | null, unit: NumUnit = "num"): number | null {
   if (raw === null) return null;
+  if (raw.length > MAX_FIELD_LEN) return null;
   let s = raw.trim();
   if (s === "") return null;
   s = s.replace(/^[x×]\s*/i, ""); // tolerate a leading multiplier marker anywhere
