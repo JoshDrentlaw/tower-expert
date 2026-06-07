@@ -4,7 +4,8 @@
     "start": "deno run --allow-net --allow-env --env-file main.ts"
   },
   "imports": {
-    "postgres": "npm:postgres@3"
+    "postgres": "npm:postgres@3",
+    "@std/assert": "jsr:@std/assert@^1"
   },
   "fmt": { "lineWidth": 100 }
 }

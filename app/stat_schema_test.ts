@@ -3,7 +3,7 @@
 // Run: deno test app/stat_schema_test.ts
 // (No DB, no env vars needed — stat_schema.ts is pure.)
 
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { coerce, STAT_SCHEMA } from "./stat_schema.ts";
 
 // ---------------------------------------------------------------------------

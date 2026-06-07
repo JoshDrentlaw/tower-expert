@@ -1,0 +1,14 @@
+# Local-dev override. Run with:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Exposes postgres on the host (:5433 for psql/tooling) and runs the app with
+# `deno task dev` (--watch) over a source mount for hot reload.
+services:
+  postgres:
+    ports:
+      - "5433:5432"
+
+  app:
+    # Base image ENTRYPOINT is `deno`, so command is the deno args (no `sh -c`).
+    command: ["task", "dev"]
+    volumes:
+      - .:/app

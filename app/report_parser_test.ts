@@ -3,7 +3,7 @@
 // Run: deno test app/report_parser_test.ts
 // (No DB, no env vars needed — report_parser.ts is pure.)
 
-import { assertEquals, assertNotEquals } from "jsr:@std/assert";
+import { assertEquals, assertNotEquals } from "@std/assert";
 import { expandNumber, parseReport } from "./report_parser.ts";
 
 // ---------------------------------------------------------------------------

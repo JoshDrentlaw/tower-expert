@@ -1,16 +1,39 @@
+# Production stack for nucklehead (also the file CI deploys with `docker compose up --build -d`).
+# Real secrets come from an untracked, gitignored .env in this dir (auto-loaded by compose
+# for ${VAR} substitution); the :-defaults below only apply for throwaway/local use.
+# For local development with hot-reload, layer the dev override:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 services:
   postgres:
     image: postgres:17-alpine
+    container_name: tower-postgres
     environment:
       POSTGRES_USER: tower
-      POSTGRES_PASSWORD: changeme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: tower
-    ports:
-      - "5433:5432"
     volumes:
       - tower_pg_data:/var/lib/postgresql/data
       - ./db/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tower -d tower"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
+
+  app:
+    build: .
+    container_name: tower-app
+    restart: unless-stopped
+    environment:
+      BASE_PATH: ${BASE_PATH:-/tower}
+      PORT: ${PORT:-8787}
+      DATABASE_URL: ${DATABASE_URL:-postgres://tower:changeme@postgres:5432/tower}
+    ports:
+      - "8787:8787"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   tower_pg_data:
