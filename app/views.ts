@@ -75,6 +75,10 @@ const STYLE = `
   pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
     padding: 1rem; overflow: auto; font-family: var(--mono); font-size: .82rem; }
   .paired-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; align-items: start; }
+  .mod-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: .9rem; align-items: start; }
+  .mod-col > div { margin-bottom: .5rem; }
+  .mod-col .col-hdr { margin-bottom: .5rem; }
   .col-hdr { font-family: var(--mono); font-size: .68rem; letter-spacing: .04em;
     text-transform: uppercase; color: var(--accent-dim);
     padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
@@ -146,8 +150,36 @@ function fieldInput(
     `placeholder="${esc(NUM_PLACEHOLDER[unit])}">`;
 }
 
+// One column per group (Modules: Cannon / Armor / Generator / Core). Each
+// group's fields stack down its column; columns wrap on narrow screens.
+function renderGroupedSection(cat: Category, catData: Record<string, unknown>): string {
+  const order: string[] = [];
+  const byGroup = new Map<string, { label: string; fields: typeof cat.fields }>();
+  for (const f of cat.fields) {
+    const g = f.group!;
+    if (!byGroup.has(g.key)) {
+      byGroup.set(g.key, { label: g.label, fields: [] });
+      order.push(g.key);
+    }
+    byGroup.get(g.key)!.fields.push(f);
+  }
+  const cols = order.map((k) => {
+    const g = byGroup.get(k)!;
+    const cells = g.fields.map((f) =>
+      `<div><label for="${esc(`${cat.key}.${f.key}`)}">${esc(f.label)}</label>${
+        fieldInput(cat, f, catData[f.key])
+      }</div>`
+    ).join("");
+    return `<div class="mod-col"><div class="col-hdr">${esc(g.label)}</div>${cells}</div>`;
+  }).join("");
+  return `<fieldset><legend>${
+    esc(cat.title)
+  }</legend><div class="mod-grid">${cols}</div></fieldset>`;
+}
+
 function renderSection(cat: Category, data: Record<string, Record<string, unknown>>): string {
   const catData = (data[cat.key] as Record<string, unknown> | undefined) ?? {};
+  if (cat.fields.some((f) => f.group)) return renderGroupedSection(cat, catData);
   const hasEnhancements = cat.fields.some((f) => f.enhancement);
 
   if (!hasEnhancements) {
@@ -288,9 +320,12 @@ function detailSection(cat: Category, data: Record<string, Record<string, unknow
   for (const f of cat.fields as Field[]) {
     const v = displayValue(f, catData[f.key]);
     if (v !== null) {
+      // Group fields (Modules) carry a short label like "Name"; prefix the mod
+      // name so the read-only view stays unambiguous.
+      const label = f.group ? `${f.group.label} — ${f.label}` : f.label;
       rows.push(
         `<tr><th style="width:200px;font-weight:normal;color:var(--muted)">${
-          esc(f.label)
+          esc(label)
         }</th><td style="font-family:var(--mono)">${v}</td></tr>`,
       );
     }
