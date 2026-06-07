@@ -249,3 +249,59 @@ Deno.test("STAT_SCHEMA: every field has a non-empty label", () => {
     }
   }
 });
+
+// ---------------------------------------------------------------------------
+// Section-fix structure (PR: utility/UW/modules)
+// ---------------------------------------------------------------------------
+
+Deno.test("STAT_SCHEMA: all 9 Ultimate Weapons are present as their own categories", () => {
+  const uwKeys = STAT_SCHEMA.filter((c) => c.key.startsWith("uw_")).map((c) => c.key);
+  assertEquals(uwKeys.length, 9, `expected 9 UW categories, got ${uwKeys.length}: ${uwKeys}`);
+  for (
+    const k of ["uw_golden_tower", "uw_poison_swamp", "uw_inner_land_mines", "uw_chrono_field"]
+  ) {
+    assertEquals(uwKeys.includes(k), true, `missing UW category '${k}'`);
+  }
+});
+
+Deno.test("STAT_SCHEMA: every Modules field carries a group (column layout)", () => {
+  const modules = STAT_SCHEMA.find((c) => c.key === "modules")!;
+  const groups = new Set(modules.fields.map((f) => f.group?.key));
+  assertEquals(
+    modules.fields.every((f) => !!f.group),
+    true,
+    "a Modules field is missing its group",
+  );
+  assertEquals([...groups].sort(), ["armor", "cannon", "core", "generator"]);
+});
+
+Deno.test("STAT_SCHEMA: each module has 6 free-text substat slots", () => {
+  const modules = STAT_SCHEMA.find((c) => c.key === "modules")!;
+  for (const mod of ["cannon", "armor", "generator", "core"]) {
+    const subs = modules.fields.filter((f) => f.key.startsWith(`${mod}_sub`));
+    assertEquals(subs.length, 6, `module '${mod}' should have 6 substats, got ${subs.length}`);
+    assertEquals(
+      subs.every((f) => f.type === "text"),
+      true,
+      `module '${mod}' substats must be text`,
+    );
+  }
+});
+
+Deno.test("STAT_SCHEMA: module rarity options include the + merge tiers", () => {
+  const rarity = STAT_SCHEMA.find((c) => c.key === "modules")!
+    .fields.find((f) => f.key === "cannon_rarity")!;
+  for (const tier of ["Rare+", "Epic+", "Legendary+", "Mythic+", "Ancestral+"]) {
+    assertEquals((rarity.options ?? []).includes(tier), true, `rarity list missing '${tier}'`);
+  }
+});
+
+Deno.test("STAT_SCHEMA: enemy level skips are workshop fields paired with an (Enh) enhancement", () => {
+  const util = STAT_SCHEMA.find((c) => c.key === "workshop_utility")!;
+  for (const base of ["enemy_atk_level_skip", "enemy_hp_level_skip"]) {
+    const field = util.fields.find((f) => f.key === base)!;
+    assertEquals(field?.unit, "pct", `${base} should be a percent`);
+    assertEquals(field?.enhancement?.key, `${base}_enh`, `${base} should pair with ${base}_enh`);
+    assertEquals(field?.enhancement?.unit, "pct", `${base}_enh should be a percent`);
+  }
+});

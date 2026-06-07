@@ -31,6 +31,10 @@ export interface Field {
   unit?: NumUnit;
   options?: string[];
   enhancement?: Enhancement;
+  // When set, the renderer lays the category out as one column per group
+  // (used by Modules: a column per Cannon/Armor/Generator/Core). All fields in
+  // a group share the same {key,label}; coercion/storage is unaffected.
+  group?: { key: string; label: string };
 }
 
 export interface Category {
@@ -39,7 +43,20 @@ export interface Category {
   fields: Field[];
 }
 
-const RARITY = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancestral"];
+// Full module rarity ladder including the "+" merge tiers.
+const RARITY = [
+  "Common",
+  "Rare",
+  "Rare+",
+  "Epic",
+  "Epic+",
+  "Legendary",
+  "Legendary+",
+  "Mythic",
+  "Mythic+",
+  "Ancestral",
+  "Ancestral+",
+];
 
 // Shorthand for the common enhancement (all enhancements are × multipliers,
 // e.g. ×1.012 — so they're decimal-valued and formatted as multipliers).
@@ -49,6 +66,25 @@ const enh = (key: string, label: string): Enhancement => ({
   type: "number",
   unit: "mult",
 });
+
+// One module's fields: Name, Rarity, Level, and six free-text substat slots
+// (unlocked in-game at module levels 41/101/141/161/201/241). All tagged with
+// the same `group` so the renderer gives each module its own column.
+const MODULE_SLOTS = 6;
+const modFields = (key: string, label: string): Field[] => {
+  const group = { key, label };
+  return [
+    { key: `${key}_name`, label: "Name", type: "text", group },
+    { key: `${key}_rarity`, label: "Rarity", type: "select", options: RARITY, group },
+    { key: `${key}_level`, label: "Level", type: "int", group },
+    ...Array.from({ length: MODULE_SLOTS }, (_, i): Field => ({
+      key: `${key}_sub${i + 1}`,
+      label: `Substat ${i + 1}`,
+      type: "text",
+      group,
+    })),
+  ];
+};
 
 export const STAT_SCHEMA: Category[] = [
   {
@@ -185,38 +221,140 @@ export const STAT_SCHEMA: Category[] = [
       { key: "free_defense", label: "Free Defense Upgrades", type: "number", unit: "pct" },
       { key: "free_utility", label: "Free Utility Upgrades", type: "number", unit: "pct" },
       { key: "cells_kill_bonus", label: "Cells / Kill Bonus (Enh)", type: "int" },
-      { key: "enemy_atk_level_skips", label: "Enemy Atk Level Skips (Enh)", type: "int" },
-      { key: "enemy_hp_level_skips", label: "Enemy HP Level Skips (Enh)", type: "int" },
+      {
+        key: "enemy_atk_level_skip",
+        label: "Enemy Atk Level Skip",
+        type: "number",
+        unit: "pct",
+        enhancement: {
+          key: "enemy_atk_level_skip_enh",
+          label: "Enemy Atk Level Skip (Enh)",
+          type: "number",
+          unit: "pct",
+        },
+      },
+      {
+        key: "enemy_hp_level_skip",
+        label: "Enemy HP Level Skip",
+        type: "number",
+        unit: "pct",
+        enhancement: {
+          key: "enemy_hp_level_skip_enh",
+          label: "Enemy HP Level Skip (Enh)",
+          type: "number",
+          unit: "pct",
+        },
+      },
+    ],
+  },
+  // Ultimate Weapons — each weapon is its own group, tracking the value of every
+  // one of its sub-stats. A section left blank = the weapon isn't unlocked yet.
+  // Sub-stat field keys repeat across weapons (e.g. `cooldown`); that's fine,
+  // they're namespaced by the category key.
+  {
+    key: "uw_golden_tower",
+    title: "UW — Golden Tower",
+    fields: [
+      { key: "bonus", label: "Bonus", type: "number", unit: "mult" },
+      { key: "duration", label: "Duration", type: "number", unit: "sec" },
+      { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
     ],
   },
   {
-    key: "ultimate_weapons",
-    title: "Ultimate Weapons (level, 0 = locked)",
+    key: "uw_death_wave",
+    title: "UW — Death Wave",
     fields: [
-      { key: "golden_tower", label: "Golden Tower", type: "int" },
-      { key: "black_hole", label: "Black Hole", type: "int" },
-      { key: "death_wave", label: "Death Wave", type: "int" },
-      { key: "spotlight", label: "Spotlight", type: "int" },
-      { key: "chain_lightning", label: "Chain Lightning", type: "int" },
-      { key: "smart_missiles", label: "Smart Missiles", type: "int" },
+      { key: "damage_amp", label: "Damage Amp", type: "number", unit: "mult" },
+      { key: "quantity", label: "Quantity", type: "int" },
+      { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
+      { key: "health_bonus", label: "Health Bonus", type: "number", unit: "pct" },
+      { key: "coin_bonus", label: "Coin Bonus", type: "number", unit: "mult" },
+      { key: "cell_bonus", label: "Cell Bonus", type: "number", unit: "mult" },
+    ],
+  },
+  {
+    key: "uw_black_hole",
+    title: "UW — Black Hole",
+    fields: [
+      { key: "size", label: "Size", type: "int" },
+      { key: "duration", label: "Duration", type: "number", unit: "sec" },
+      { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
+    ],
+  },
+  {
+    key: "uw_spotlight",
+    title: "UW — Spotlight",
+    fields: [
+      { key: "bonus", label: "Bonus", type: "number", unit: "mult" },
+      { key: "angle", label: "Angle", type: "int" },
+      { key: "quantity", label: "Quantity", type: "int" },
+    ],
+  },
+  {
+    key: "uw_chain_lightning",
+    title: "UW — Chain Lightning",
+    fields: [
+      { key: "damage", label: "Damage", type: "number", unit: "mult" },
+      { key: "quantity", label: "Quantity", type: "int" },
+      { key: "chance", label: "Chance", type: "number", unit: "pct" },
+    ],
+  },
+  {
+    key: "uw_smart_missiles",
+    title: "UW — Smart Missiles",
+    fields: [
+      { key: "damage", label: "Damage", type: "number", unit: "mult" },
+      { key: "quantity", label: "Quantity", type: "int" },
+      { key: "recharge", label: "Recharge", type: "number", unit: "sec" },
+      { key: "despawn", label: "Despawn Time", type: "number", unit: "sec" },
+      { key: "radius", label: "Radius", type: "int" },
+      { key: "explosions", label: "Explosions", type: "int" },
+      { key: "barrage", label: "Barrage", type: "int" },
+    ],
+  },
+  {
+    key: "uw_poison_swamp",
+    title: "UW — Poison Swamp",
+    fields: [
+      { key: "damage", label: "Damage", type: "number", unit: "mult" },
+      { key: "duration", label: "Duration", type: "number", unit: "sec" },
+      { key: "radius", label: "Radius", type: "int" },
+      { key: "stun_chance", label: "Stun Chance", type: "number", unit: "pct" },
+      { key: "stun_time", label: "Stun Time", type: "number", unit: "sec" },
+      { key: "rend", label: "Rend", type: "number", unit: "mult" },
+    ],
+  },
+  {
+    key: "uw_inner_land_mines",
+    title: "UW — Inner Land Mines",
+    fields: [
+      { key: "damage", label: "Damage", type: "number", unit: "pct" },
+      { key: "mine_count", label: "Mine Count", type: "int" },
+      { key: "blast_radius", label: "Blast Radius", type: "int" },
+      { key: "rotation_speed", label: "Rotation Speed", type: "int" },
+      { key: "stun", label: "Stun", type: "int" },
+      { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
+    ],
+  },
+  {
+    key: "uw_chrono_field",
+    title: "UW — Chrono Field",
+    fields: [
+      { key: "speed_reduction", label: "Speed Reduction", type: "number", unit: "pct" },
+      { key: "damage_reduction", label: "Damage Reduction", type: "number", unit: "pct" },
+      { key: "range", label: "Range", type: "int" },
+      { key: "duration", label: "Duration", type: "number", unit: "sec" },
+      { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
     ],
   },
   {
     key: "modules",
     title: "Modules",
     fields: [
-      { key: "cannon_name", label: "Cannon — Name", type: "text" },
-      { key: "cannon_rarity", label: "Cannon — Rarity", type: "select", options: RARITY },
-      { key: "cannon_level", label: "Cannon — Level", type: "int" },
-      { key: "armor_name", label: "Armor — Name", type: "text" },
-      { key: "armor_rarity", label: "Armor — Rarity", type: "select", options: RARITY },
-      { key: "armor_level", label: "Armor — Level", type: "int" },
-      { key: "generator_name", label: "Generator — Name", type: "text" },
-      { key: "generator_rarity", label: "Generator — Rarity", type: "select", options: RARITY },
-      { key: "generator_level", label: "Generator — Level", type: "int" },
-      { key: "core_name", label: "Core — Name", type: "text" },
-      { key: "core_rarity", label: "Core — Rarity", type: "select", options: RARITY },
-      { key: "core_level", label: "Core — Level", type: "int" },
+      ...modFields("cannon", "Cannon"),
+      ...modFields("armor", "Armor"),
+      ...modFields("generator", "Generator"),
+      ...modFields("core", "Core"),
     ],
   },
 ];
