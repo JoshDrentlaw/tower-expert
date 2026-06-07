@@ -5,9 +5,21 @@ Guidance for Claude Code when working in this repository.
 ## What this is
 
 **Tower — build tracker.** A small Deno + TypeScript web app that stores **versioned snapshots** of
-a player's build in the game _The Tower_, plus pasted battle reports. Server-rendered HTML, no
-client-side JS, no build step. Single-user, homelab deployment behind Caddy + Tailscale (no public
-ingress, no auth).
+a player's build in the game _The Tower_, plus pasted battle reports. **Currently** server-rendered
+HTML with no client-side JS and no build step, deployed single-user on a homelab behind Caddy +
+Tailscale (no public ingress, no auth).
+
+**Direction — read this before making tooling decisions.** The no-build-step / no-client-JS /
+single-user posture is the project's _current state_, **not a hard constraint**. That rule was
+inherited from the chore-app template Tower was scaffolded from and does **not** bind this project.
+Tower is intended to grow into a tool shared with The Tower community, so internationalization
+(i18n), thorough accessibility (a11y), and eventually richer UI (charts) are on the roadmap. A build
+step, a client framework (HTMX → Fresh), JSX templating, or Tailwind are all fair game when they pay
+for themselves — do **not** reject a library or approach _solely_ because it adds a build step.
+Rough graduation triggers: hand-rolled `<script>` appearing in 3+ views, an HTML-escaping near-miss,
+i18n threading making view signatures unwieldy, _interactive_ (not static-SVG) charts, or
+multi-user/auth. The cheapest pre-emptive move is migrating `views.ts` string templates to JSX
+components at the start of the first big i18n/UI push — before that surface grows large.
 
 Core design idea: a respec is a _new_ snapshot (history is preserved). Every stat value lives in
 `builds.data` (jsonb), so changing what you track never requires a DB migration —
