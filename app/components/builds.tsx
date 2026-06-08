@@ -12,6 +12,9 @@ import { Section } from "./fields.tsx";
 export interface BuildFormOpts {
   build?: Build;
   parentId?: number;
+  // When set, the form edits this build in place (UPDATE) instead of creating
+  // a new snapshot — used when leveling up, not respeccing.
+  editId?: number;
   error?: string;
   submittedLabel?: string;
   submittedNote?: string;
@@ -23,16 +26,24 @@ export interface BuildFormOpts {
 
 export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: BuildFormOpts }) {
   const { base, t } = ctx;
+  const isEdit = opts.editId !== undefined;
+  const action = isEdit ? `${base}/builds/${opts.editId}` : `${base}/builds`;
   const data: Record<string, Record<string, unknown>> = opts.submittedData ?? opts.build?.data ??
     {};
   const parentId = opts.parentId ?? "";
   const invalid = opts.invalidKeys ? new Set(opts.invalidKeys) : undefined;
   const labelValue = opts.submittedLabel !== undefined
     ? opts.submittedLabel
+    : isEdit
+    ? (opts.build?.label ?? "")
     : (opts.build ? `${opts.build.label} (respec)` : "");
-  const noteValue = opts.submittedNote ?? "";
+  const noteValue = opts.submittedNote !== undefined
+    ? opts.submittedNote
+    : (isEdit ? (opts.build?.note ?? "") : "");
 
-  const respecNote = opts.build && !opts.submittedData
+  const introNote = isEdit
+    ? <p class="hint">{t("buildForm.editing", { id: opts.editId! })}</p>
+    : opts.build && !opts.submittedData
     ? <p class="hint">{t("buildForm.cloned", { id: opts.build.id })}</p>
     : (
       <p class="hint">
@@ -44,12 +55,12 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
     );
 
   return (
-    <form method="post" action={`${base}/builds`}>
-      <input type="hidden" name="parent_build_id" value={String(parentId)} />
+    <form method="post" action={action}>
+      {isEdit ? null : <input type="hidden" name="parent_build_id" value={String(parentId)} />}
       {opts.error
         ? <p id="form-error" class="hint" style="color:#e88" role="alert">{opts.error}</p>
         : null}
-      {respecNote}
+      {introNote}
       <p class="hint">{t("buildForm.shorthandHint")}</p>
       <div class="meta">
         <div>
@@ -79,7 +90,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
       </div>
       {STAT_SCHEMA.map((cat) => <Section ctx={ctx} cat={cat} data={data} invalid={invalid} />)}
       <div class="actions">
-        <button type="submit">{t("buildForm.save")}</button>
+        <button type="submit">{t(isEdit ? "buildForm.saveEdit" : "buildForm.save")}</button>
       </div>
     </form>
   );
@@ -191,11 +202,11 @@ export function BuildDetail({ ctx, b }: { ctx: RequestContext; b: Build }) {
     .filter((s): s is VNode => s !== null);
   return (
     <>
-      <p>
-        <a
-          href={`${base}/builds/new?from=${b.id}`}
-          style="color:var(--accent);font-family:var(--mono)"
-        >
+      <p style="display:flex;gap:1.25rem;flex-wrap:wrap;font-family:var(--mono)">
+        <a href={`${base}/builds/${b.id}/edit`} style="color:var(--accent)">
+          {t("buildDetail.edit")}
+        </a>
+        <a href={`${base}/builds/new?from=${b.id}`} style="color:var(--accent)">
           {t("buildDetail.respecFrom")}
         </a>
       </p>

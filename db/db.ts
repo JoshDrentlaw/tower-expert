@@ -60,6 +60,23 @@ export async function insertBuild(b: {
   return rows[0].id;
 }
 
+// Edit a build in place (used when leveling — not a respec). Updates label,
+// note, and the full stat data. Returns the id, or undefined if no such build.
+export async function updateBuild(id: number, b: {
+  label: string;
+  note: string | null;
+  data: Record<string, unknown>;
+}): Promise<number | undefined> {
+  const rows = await sql<{ id: number }[]>`
+    update builds
+    set label = ${b.label}, note = ${b.note}, data = ${
+    sql.json(b.data as Parameters<typeof sql.json>[0])
+  }
+    where id = ${id}
+    returning id`;
+  return rows[0]?.id;
+}
+
 export interface BattleReport {
   id: number;
   build_id: number | null;

@@ -23,7 +23,9 @@ components at the start of the first big i18n/UI push — before that surface gr
 
 Core design idea: a respec is a _new_ snapshot (history is preserved). Every stat value lives in
 `builds.data` (jsonb), so changing what you track never requires a DB migration —
-`app/stat_schema.ts` is the application's schema, not the database's.
+`app/stat_schema.ts` is the application's schema, not the database's. A build can also be **edited
+in place** (`updateBuild`) — that's for leveling up an existing build, distinct from a respec, which
+clones into a new snapshot.
 
 ## Game data — ALWAYS use the Fandom MediaWiki Action API, never fetch pages directly
 
@@ -93,16 +95,18 @@ Requires a `.env` with `DATABASE_URL`. `BASE_PATH` defaults to `/tower`.
 
 ## Routes (all prefixed with `BASE_PATH`, default `/tower`)
 
-| Method | Path           | Handler (file)                                                   |
-| ------ | -------------- | ---------------------------------------------------------------- |
-| GET    | `/builds`      | `handleList` (routes/builds.tsx)                                 |
-| GET    | `/builds/new`  | `handleNew` — `?from=latest` or `?from=<id>` to prefill (respec) |
-| POST   | `/builds`      | `handleSave`                                                     |
-| GET    | `/builds/:id`  | `handleDetail`                                                   |
-| GET    | `/reports`     | `handleReportList` (routes/reports.tsx)                          |
-| GET    | `/reports/new` | `handleReportNew`                                                |
-| POST   | `/reports`     | `handleReportSave`                                               |
-| GET    | `/reports/:id` | `handleReportDetail`                                             |
+| Method | Path               | Handler (file)                                                   |
+| ------ | ------------------ | ---------------------------------------------------------------- |
+| GET    | `/builds`          | `handleList` (routes/builds.tsx)                                 |
+| GET    | `/builds/new`      | `handleNew` — `?from=latest` or `?from=<id>` to prefill (respec) |
+| POST   | `/builds`          | `handleSave`                                                     |
+| GET    | `/builds/:id/edit` | `handleEdit` — edit-in-place form (leveling, not respec)         |
+| POST   | `/builds/:id`      | `handleUpdate` — update build in place                           |
+| GET    | `/builds/:id`      | `handleDetail`                                                   |
+| GET    | `/reports`         | `handleReportList` (routes/reports.tsx)                          |
+| GET    | `/reports/new`     | `handleReportNew`                                                |
+| POST   | `/reports`         | `handleReportSave`                                               |
+| GET    | `/reports/:id`     | `handleReportDetail`                                             |
 
 ## Architecture notes & conventions
 
@@ -123,6 +127,13 @@ Requires a `.env` with `DATABASE_URL`. `BASE_PATH` defaults to `/tower`.
   `stat.<cat>.<field>`, `cat.<cat>`, `mod.<group>`). Game magnitude numbers stay locale-neutral
   (`fmt.num`); counts/dates localize via `fmt.integer`/`fmt.dateTime`. Locale resolves per request
   as `?lang=` → `lang` cookie → `Accept-Language` → `en`, and is persisted as a cookie on render.
+- **Localization voice — write for the actual audience, not the textbook.** Translations target real
+  users, not formal/neutral "correctness." The Spanish (`es.json`) audience is **US-based,
+  predominantly Southern California / Mexican Spanish**: use informal `tú`; Mexican vocabulary
+  (`reporte` not `informe`, `ingresar` not `introducir`); keep widely-understood English gaming/tech
+  loanwords (`build`, `respec`, `snapshot`, `run`); avoid Castilian forms (`vosotros`, `ordenador`,
+  `vale`, …). Apply the same audience-first principle to any future locale — pick the register and
+  regional variant your players actually speak.
 - **All SQL goes through postgres.js tagged templates** (`sql\`...${val}...\``), which parameterize
   automatically. Never string-concatenate into a query.
 - **`db.ts` throws at module load** if `DATABASE_URL` is unset (fail-fast, intentional). This means
