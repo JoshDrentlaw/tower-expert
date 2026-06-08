@@ -13,17 +13,19 @@ import { ReportDetail, ReportForm, ReportsList } from "../components/reports.tsx
 const MAX_RAW_BYTES = 256 * 1024; // 256 KB
 
 function page(ctx: RequestContext, title: string, body: VNode, status = 200): Response {
-  return renderPage(<Layout ctx={ctx} title={title}>{body}</Layout>, status);
+  return renderPage(<Layout ctx={ctx} title={title}>{body}</Layout>, status, {
+    "set-cookie": `lang=${ctx.locale}; Path=${ctx.base || "/"}; Max-Age=31536000; SameSite=Lax`,
+  });
 }
 
 export async function handleReportList(ctx: RequestContext): Promise<Response> {
   const reports = await listReports();
-  return page(ctx, "Tower // Reports", <ReportsList ctx={ctx} reports={reports} />);
+  return page(ctx, ctx.t("title.reports"), <ReportsList ctx={ctx} reports={reports} />);
 }
 
 export async function handleReportNew(ctx: RequestContext): Promise<Response> {
   const builds = await listBuilds();
-  return page(ctx, "Tower // Log Run", <ReportForm ctx={ctx} builds={builds} />);
+  return page(ctx, ctx.t("title.logRun"), <ReportForm ctx={ctx} builds={builds} />);
 }
 
 export async function handleReportSave(ctx: RequestContext, req: Request): Promise<Response> {
@@ -36,11 +38,11 @@ export async function handleReportSave(ctx: RequestContext, req: Request): Promi
     const builds = await listBuilds();
     return page(
       ctx,
-      "Tower // Log Run",
+      ctx.t("title.logRun"),
       <ReportForm
         ctx={ctx}
         builds={builds}
-        opts={{ buildId: buildRaw ?? undefined, error: "Paste is required." }}
+        opts={{ buildId: buildRaw ?? undefined, error: ctx.t("error.pasteRequired") }}
       />,
       400,
     );
@@ -50,15 +52,13 @@ export async function handleReportSave(ctx: RequestContext, req: Request): Promi
     const builds = await listBuilds();
     return page(
       ctx,
-      "Tower // Log Run",
+      ctx.t("title.logRun"),
       <ReportForm
         ctx={ctx}
         builds={builds}
         opts={{
           buildId: buildRaw ?? undefined,
-          error: `Paste is too large (max ${
-            Math.round(MAX_RAW_BYTES / 1024)
-          } KB). Make sure you copied only the after-run report.`,
+          error: ctx.t("error.pasteTooLarge", { kb: Math.round(MAX_RAW_BYTES / 1024) }),
         }}
       />,
       413,
@@ -74,16 +74,11 @@ export async function handleReportSave(ctx: RequestContext, req: Request): Promi
     const builds = await listBuilds();
     return page(
       ctx,
-      "Tower // Log Run",
+      ctx.t("title.logRun"),
       <ReportForm
         ctx={ctx}
         builds={builds}
-        opts={{
-          raw,
-          buildId: buildRaw ?? undefined,
-          error:
-            "Could not find battle report data in that paste — make sure you copied the full after-run report from the game.",
-        }}
+        opts={{ raw, buildId: buildRaw ?? undefined, error: ctx.t("error.noReportData") }}
       />,
       422,
     );
@@ -107,6 +102,13 @@ export async function handleReportSave(ctx: RequestContext, req: Request): Promi
 
 export async function handleReportDetail(ctx: RequestContext, id: number): Promise<Response> {
   const report = await getReport(id);
-  if (!report) return page(ctx, "Not found", <p class="hint">No report #{id}.</p>, 404);
-  return page(ctx, `Tower // Report #${id}`, <ReportDetail ctx={ctx} r={report} />);
+  if (!report) {
+    return page(
+      ctx,
+      ctx.t("title.notFound"),
+      <p class="hint">{ctx.t("reportDetail.notFound", { id })}</p>,
+      404,
+    );
+  }
+  return page(ctx, ctx.t("title.report", { id }), <ReportDetail ctx={ctx} r={report} />);
 }

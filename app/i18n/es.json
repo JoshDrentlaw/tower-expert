@@ -1,0 +1,56 @@
+{
+  "app.title": "Tower // Builds",
+
+  "nav.builds": "builds",
+  "nav.newBuild": "nuevo build",
+  "nav.respec": "respec",
+  "nav.reports": "reportes",
+  "nav.logRun": "registrar run",
+
+  "title.builds": "Tower // Builds",
+  "title.newBuild": "Tower // Nuevo Build",
+  "title.reports": "Tower // Reportes",
+  "title.logRun": "Tower // Registrar Run",
+  "title.notFound": "No encontrado",
+
+  "buildForm.label": "Etiqueta",
+  "buildForm.note": "Nota",
+  "buildForm.notePlaceholder": "contexto opcional",
+  "buildForm.save": "Guardar snapshot",
+  "buildForm.newSnapshotLead": "Un nuevo snapshot. O empieza desde tu último build vía",
+  "buildForm.respec": "respec",
+  "buildForm.cloned": "Clonado del build #{id} — cambia solo lo que se movió, luego guarda como un nuevo snapshot. Los campos sin tocar se mantienen.",
+  "buildForm.upgrade": "Mejora",
+  "buildForm.enhancement": "Realce ×",
+
+  "buildsList.empty": "Aún no hay builds.",
+  "buildsList.createOne": "Crear uno →",
+  "buildsList.thBuild": "Build",
+  "buildsList.thRespecOf": "Respec de",
+  "buildsList.thNote": "Nota",
+  "buildsList.thSaved": "Guardado",
+
+  "buildDetail.respecFrom": "→ respec desde este build",
+  "buildDetail.noStats": "Este snapshot no tiene stats guardados.",
+  "buildDetail.rawData": "datos en bruto",
+  "buildDetail.notFound": "No existe el build #{id}.",
+
+  "error.labelRequired": "La etiqueta es obligatoria.",
+  "error.labelTooLong": "La etiqueta es demasiado larga (máx {max} caracteres).",
+  "error.couldntRead": "No se pudieron leer estos campos, así que no se guardó nada: {fields}. Ingresa los valores como los muestra el juego — p. ej. 869.03M, 56.4%, ×1.012, 14s.",
+
+  "cat.workshop_attack": "Taller — Ataque",
+  "cat.workshop_defense": "Taller — Defensa",
+  "cat.workshop_utility": "Taller — Utilidad",
+  "cat.modules": "Módulos",
+
+  "stat.workshop_attack.damage": "Daño",
+  "stat.workshop_attack.attack_speed": "Velocidad de Ataque",
+  "stat.workshop_attack.crit_chance": "Prob. de Crítico",
+  "stat.workshop_defense.health": "Salud",
+
+  "mod.cannon": "Cañón",
+  "mod.armor": "Armadura",
+  "mod.generator": "Generador",
+  "mod.core": "Núcleo"
+}

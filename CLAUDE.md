@@ -67,6 +67,7 @@ app/
   report_parser.ts       Pure text → ParsedReport parser for pasted battle reports.
   components/            Preact/JSX server-rendered views (.tsx): Layout, fields, builds, reports.
   services/             ctx.ts (RequestContext), render.tsx (renderPage), format.ts (Formatter).
+  i18n/                  index.ts (t() + locale resolution) + per-locale catalogs (en.json, es.json).
   routes/builds.tsx      GET list/new/detail, POST save. Coerces form data via STAT_SCHEMA.
   routes/reports.tsx     GET list/new/detail, POST save. Parses paste, rejects meaningless input.
 db/
@@ -116,6 +117,12 @@ Requires a `.env` with `DATABASE_URL`. `BASE_PATH` defaults to `/tower`.
 - **HTML escaping is automatic** — views are Preact components and JSX escapes text + attribute
   values on render. There is no `esc()`. Keep user/DB data out of `dangerouslySetInnerHTML` (only
   the static CSS in `Layout.tsx` uses it) and out of URL/`<script>` contexts.
+- **All user-facing text goes through `ctx.t(key, { default })`** (`app/i18n/`). Catalogs are flat
+  key→string maps; `en.json` is the source of truth. Stat/category/module labels pass their schema
+  label as `default`, so they render in English until a locale translates them (key shape:
+  `stat.<cat>.<field>`, `cat.<cat>`, `mod.<group>`). Game magnitude numbers stay locale-neutral
+  (`fmt.num`); counts/dates localize via `fmt.integer`/`fmt.dateTime`. Locale resolves per request
+  as `?lang=` → `lang` cookie → `Accept-Language` → `en`, and is persisted as a cookie on render.
 - **All SQL goes through postgres.js tagged templates** (`sql\`...${val}...\``), which parameterize
   automatically. Never string-concatenate into a query.
 - **`db.ts` throws at module load** if `DATABASE_URL` is unset (fail-fast, intentional). This means

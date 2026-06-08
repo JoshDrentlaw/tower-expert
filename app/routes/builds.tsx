@@ -16,13 +16,16 @@ const isNumeric = (t: FieldType) => t === "int" || t === "number";
 const MAX_LABEL_LENGTH = 200;
 
 function page(ctx: RequestContext, title: string, body: VNode, status = 200): Response {
-  return renderPage(<Layout ctx={ctx} title={title}>{body}</Layout>, status);
+  return renderPage(<Layout ctx={ctx} title={title}>{body}</Layout>, status, {
+    // Persist the resolved locale so a one-time ?lang= sticks.
+    "set-cookie": `lang=${ctx.locale}; Path=${ctx.base || "/"}; Max-Age=31536000; SameSite=Lax`,
+  });
 }
 
 // GET {base}/builds  — history
 export async function handleList(ctx: RequestContext): Promise<Response> {
   const builds = await listBuilds();
-  return page(ctx, "Tower // Builds", <BuildsList ctx={ctx} builds={builds} />);
+  return page(ctx, ctx.t("title.builds"), <BuildsList ctx={ctx} builds={builds} />);
 }
 
 // GET {base}/builds/new          — blank form
@@ -35,7 +38,7 @@ export async function handleNew(ctx: RequestContext, url: URL): Promise<Response
 
   return page(
     ctx,
-    "Tower // New Build",
+    ctx.t("title.newBuild"),
     <BuildForm ctx={ctx} opts={build ? { build, parentId: build.id } : {}} />,
   );
 }
@@ -62,7 +65,8 @@ export async function handleSave(ctx: RequestContext, req: Request): Promise<Res
       if (value !== null) {
         section[key] = value;
       } else if (isNumeric(type) && raw !== null && raw.trim() !== "") {
-        failed.push(label);
+        // Translate the field label for the error message.
+        failed.push(ctx.t(`stat.${cat.key}.${key}`, { default: label }));
         section[key] = raw; // echo the bad input back into the re-rendered field
       }
     };
@@ -77,22 +81,19 @@ export async function handleSave(ctx: RequestContext, req: Request): Promise<Res
 
   const errors: string[] = [];
   if (!labelRaw) {
-    errors.push("Label is required.");
+    errors.push(ctx.t("error.labelRequired"));
   } else if (labelRaw.length > MAX_LABEL_LENGTH) {
-    errors.push(`Label is too long (max ${MAX_LABEL_LENGTH} characters).`);
+    errors.push(ctx.t("error.labelTooLong", { max: MAX_LABEL_LENGTH }));
   }
   if (failed.length > 0) {
-    errors.push(
-      `Couldn't read these fields, so nothing was saved for them: ${failed.join(", ")}. ` +
-        `Enter values the way the game shows them — e.g. 869.03M, 56.4%, ×1.012, 14s.`,
-    );
+    errors.push(ctx.t("error.couldntRead", { fields: failed.join(", ") }));
   }
 
   if (errors.length > 0) {
     const status = labelRaw && failed.length === 0 ? 422 : 400;
     return page(
       ctx,
-      "Tower // New Build",
+      ctx.t("title.newBuild"),
       <BuildForm
         ctx={ctx}
         opts={{
@@ -114,6 +115,17 @@ export async function handleSave(ctx: RequestContext, req: Request): Promise<Res
 // GET {base}/builds/:id  — detail
 export async function handleDetail(ctx: RequestContext, id: number): Promise<Response> {
   const build = await getBuild(id);
-  if (!build) return page(ctx, "Not found", <p class="hint">No build #{id}.</p>, 404);
-  return page(ctx, `Tower // #${id} ${build.label}`, <BuildDetail ctx={ctx} b={build} />);
+  if (!build) {
+    return page(
+      ctx,
+      ctx.t("title.notFound"),
+      <p class="hint">{ctx.t("buildDetail.notFound", { id })}</p>,
+      404,
+    );
+  }
+  return page(
+    ctx,
+    ctx.t("title.build", { id, label: build.label }),
+    <BuildDetail ctx={ctx} b={build} />,
+  );
 }

@@ -4,10 +4,14 @@
 import { assertStringIncludes } from "@std/assert";
 import { renderToString } from "preact-render-to-string";
 import { makeFormatter } from "../services/format.ts";
+import { makeT } from "../i18n/index.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import { BuildForm } from "./builds.tsx";
 
-const ctx: RequestContext = { base: "/tower", locale: "en", fmt: makeFormatter("en") };
+function ctxFor(locale: string): RequestContext {
+  return { base: "/tower", locale, t: makeT(locale), fmt: makeFormatter(locale) };
+}
+const ctx = ctxFor("en");
 
 Deno.test("BuildForm renders the schema: fields, all 9 UW sections, module columns", () => {
   const html = renderToString(<BuildForm ctx={ctx} opts={{}} />);
@@ -30,4 +34,14 @@ Deno.test("BuildForm shows an error banner with role=alert", () => {
   const html = renderToString(<BuildForm ctx={ctx} opts={{ error: "Label is required." }} />);
   assertStringIncludes(html, 'role="alert"');
   assertStringIncludes(html, "Label is required.");
+});
+
+Deno.test("BuildForm renders translated chrome + game labels under es locale", () => {
+  const html = renderToString(<BuildForm ctx={ctxFor("es")} opts={{}} />);
+  assertStringIncludes(html, "Guardar snapshot"); // buildForm.save
+  assertStringIncludes(html, "Daño"); // stat label translated
+  assertStringIncludes(html, "Taller — Ataque"); // category title translated
+  assertStringIncludes(html, "Cañón"); // module group label translated
+  // Untranslated stat keys fall back to the English schema label:
+  assertStringIncludes(html, "Rend Armor Chance");
 });

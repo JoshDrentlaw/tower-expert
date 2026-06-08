@@ -1,5 +1,5 @@
 // builds.tsx — build form, history list, and schema-driven detail view.
-// Ported 1:1 from views.ts (buildForm, buildsList, buildDetail, detailSection).
+// All chrome + game labels go through ctx.t.
 
 import type { VNode } from "preact";
 import type { Build } from "../../db/db.ts";
@@ -19,9 +19,7 @@ export interface BuildFormOpts {
 }
 
 export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: BuildFormOpts }) {
-  const { base } = ctx;
-  // submittedData takes priority over build.data so validation-error re-renders
-  // echo back exactly what the user submitted.
+  const { base, t } = ctx;
   const data: Record<string, Record<string, unknown>> = opts.submittedData ?? opts.build?.data ??
     {};
   const parentId = opts.parentId ?? "";
@@ -31,16 +29,13 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
   const noteValue = opts.submittedNote ?? "";
 
   const respecNote = opts.build && !opts.submittedData
-    ? (
-      <p class="hint">
-        Cloned from build #{opts.build.id}{" "}
-        — change only what moved, then save as a new snapshot. Untouched fields carry forward.
-      </p>
-    )
+    ? <p class="hint">{t("buildForm.cloned", { id: opts.build.id })}</p>
     : (
       <p class="hint">
-        A new snapshot. Or start from your last build via{" "}
-        <a href={`${base}/builds/new?from=latest`} style="color:var(--accent)">respec</a>.
+        {t("buildForm.newSnapshotLead")}{" "}
+        <a href={`${base}/builds/new?from=latest`} style="color:var(--accent)">
+          {t("buildForm.respec")}
+        </a>.
       </p>
     );
 
@@ -51,41 +46,42 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
       {respecNote}
       <div class="meta">
         <div>
-          <label for="label">Label</label>
+          <label for="label">{t("buildForm.label")}</label>
           <input
             id="label"
             type="text"
             name="label"
             value={labelValue}
-            placeholder="fire crit v3"
+            placeholder={t("buildForm.labelPlaceholder")}
             required
           />
         </div>
         <div>
-          <label for="note">Note</label>
+          <label for="note">{t("buildForm.note")}</label>
           <input
             id="note"
             type="text"
             name="note"
             value={noteValue}
-            placeholder="optional context"
+            placeholder={t("buildForm.notePlaceholder")}
           />
         </div>
       </div>
-      {STAT_SCHEMA.map((cat) => <Section cat={cat} data={data} />)}
+      {STAT_SCHEMA.map((cat) => <Section ctx={ctx} cat={cat} data={data} />)}
       <div class="actions">
-        <button type="submit">Save snapshot</button>
+        <button type="submit">{t("buildForm.save")}</button>
       </div>
     </form>
   );
 }
 
 export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build[] }) {
-  const { base, fmt } = ctx;
+  const { base, t, fmt } = ctx;
   if (builds.length === 0) {
     return (
       <p class="hint">
-        No builds yet. <a href={`${base}/builds/new`} style="color:var(--accent)">Create one →</a>
+        {t("buildsList.empty")}{" "}
+        <a href={`${base}/builds/new`} style="color:var(--accent)">{t("buildsList.createOne")}</a>
       </p>
     );
   }
@@ -93,10 +89,10 @@ export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build
     <table>
       <thead>
         <tr>
-          <th>Build</th>
-          <th>Respec of</th>
-          <th>Note</th>
-          <th>Saved</th>
+          <th>{t("buildsList.thBuild")}</th>
+          <th>{t("buildsList.thRespecOf")}</th>
+          <th>{t("buildsList.thNote")}</th>
+          <th>{t("buildsList.thSaved")}</th>
         </tr>
       </thead>
       <tbody>
@@ -137,13 +133,17 @@ function DetailSection(
     data: Record<string, Record<string, unknown>>;
   },
 ): VNode | null {
+  const { t } = ctx;
   const catData = (data[cat.key] as Record<string, unknown> | undefined) ?? {};
   const rows: VNode[] = [];
   const th = "width:200px;font-weight:normal;color:var(--muted)";
   for (const f of cat.fields as SchemaField[]) {
     const v = displayValue(ctx.fmt, f, catData[f.key]);
     if (v !== null) {
-      const label = f.group ? `${f.group.label} — ${f.label}` : f.label;
+      const base = t(`stat.${cat.key}.${f.key}`, { default: f.label });
+      const label = f.group
+        ? `${t(`mod.${f.group.key}`, { default: f.group.label })} — ${base}`
+        : base;
       rows.push(
         <tr>
           <th style={th}>{label}</th>
@@ -154,9 +154,10 @@ function DetailSection(
     if (f.enhancement) {
       const ev = displayValue(ctx.fmt, f.enhancement, catData[f.enhancement.key]);
       if (ev !== null) {
+        const elabel = t(`stat.${cat.key}.${f.enhancement.key}`, { default: f.enhancement.label });
         rows.push(
           <tr>
-            <th style={th}>{f.enhancement.label}</th>
+            <th style={th}>{elabel}</th>
             <td style="font-family:var(--mono)">{ev}</td>
           </tr>,
         );
@@ -166,14 +167,14 @@ function DetailSection(
   if (rows.length === 0) return null;
   return (
     <fieldset>
-      <legend>{cat.title}</legend>
+      <legend>{t(`cat.${cat.key}`, { default: cat.title })}</legend>
       <table style="width:auto;font-size:.88rem;">{rows}</table>
     </fieldset>
   );
 }
 
 export function BuildDetail({ ctx, b }: { ctx: RequestContext; b: Build }) {
-  const { base } = ctx;
+  const { base, t } = ctx;
   const sections = STAT_SCHEMA
     .map((cat) => <DetailSection ctx={ctx} cat={cat} data={b.data} />)
     .filter((s): s is VNode => s !== null);
@@ -184,13 +185,13 @@ export function BuildDetail({ ctx, b }: { ctx: RequestContext; b: Build }) {
           href={`${base}/builds/new?from=${b.id}`}
           style="color:var(--accent);font-family:var(--mono)"
         >
-          → respec from this build
+          {t("buildDetail.respecFrom")}
         </a>
       </p>
-      {sections.length ? sections : <p class="hint">This snapshot has no stored stats.</p>}
+      {sections.length ? sections : <p class="hint">{t("buildDetail.noStats")}</p>}
       <details style="margin-top:1rem;">
         <summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">
-          raw data
+          {t("buildDetail.rawData")}
         </summary>
         <pre style="margin-top:.5rem">{JSON.stringify(b.data, null, 2)}</pre>
       </details>
