@@ -83,6 +83,7 @@
   "reportDetail.realTime": "Real Time",
   "reportDetail.killedBy": "Killed By",
   "reportDetail.build": "Build",
+  "reportDetail.fullData": "Full report data",
   "reportDetail.rawPaste": "raw paste",
   "reportDetail.notFound": "No report #{id}.",
   "reportDetail.dateInferred": "[date inferred]",

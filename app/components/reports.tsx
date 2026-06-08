@@ -64,7 +64,7 @@ export function ReportForm(
           {opts.raw ?? ""}
         </textarea>
       </div>
-      <div class="actions">
+      <div class="actions sticky">
         <button type="submit">{t("reportForm.save")}</button>
       </div>
     </form>
@@ -179,7 +179,12 @@ export function ReportDetail({ ctx, r }: { ctx: RequestContext; r: BattleReport 
   return (
     <>
       <table style="width:auto;margin-bottom:1.5rem;font-size:.88rem;">{rows}</table>
-      <pre>{JSON.stringify(r.parsed, null, 2)}</pre>
+      <details style="margin-top:1rem;">
+        <summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">
+          {t("reportDetail.fullData")}
+        </summary>
+        <pre style="margin-top:.5rem">{JSON.stringify(r.parsed, null, 2)}</pre>
+      </details>
       {r.raw
         ? (
           <details style="margin-top:1rem;">
