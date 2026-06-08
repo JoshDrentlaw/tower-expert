@@ -4,7 +4,14 @@
 // handle_path stripping: every route and link is prefixed, so assets and
 // form actions resolve correctly under the subpath.
 
-import { handleDetail, handleList, handleNew, handleSave } from "./app/routes/builds.tsx";
+import {
+  handleDetail,
+  handleEdit,
+  handleList,
+  handleNew,
+  handleSave,
+  handleUpdate,
+} from "./app/routes/builds.tsx";
 import {
   handleReportDetail,
   handleReportList,
@@ -17,6 +24,7 @@ const BASE = (Deno.env.get("BASE_PATH") ?? "/tower").replace(/\/+$/, "");
 const PORT = Number(Deno.env.get("PORT") ?? 8787);
 
 const buildPattern = new URLPattern({ pathname: `${BASE}/builds/:id(\\d+)` });
+const buildEditPattern = new URLPattern({ pathname: `${BASE}/builds/:id(\\d+)/edit` });
 const reportPattern = new URLPattern({ pathname: `${BASE}/reports/:id(\\d+)` });
 
 Deno.serve({ port: PORT }, async (req) => {
@@ -39,9 +47,17 @@ Deno.serve({ port: PORT }, async (req) => {
     }
     if (req.method === "POST" && pathname === `${BASE}/builds`) return await handleSave(ctx, req);
 
+    const buildEditMatch = buildEditPattern.exec(url);
+    if (req.method === "GET" && buildEditMatch) {
+      return await handleEdit(ctx, Number(buildEditMatch.pathname.groups.id));
+    }
+
     const buildMatch = buildPattern.exec(url);
     if (req.method === "GET" && buildMatch) {
       return await handleDetail(ctx, Number(buildMatch.pathname.groups.id));
+    }
+    if (req.method === "POST" && buildMatch) {
+      return await handleUpdate(ctx, req, Number(buildMatch.pathname.groups.id));
     }
 
     // Report routes

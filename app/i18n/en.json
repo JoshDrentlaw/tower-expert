@@ -16,6 +16,7 @@
   "title.logRun": "Tower // Log Run",
   "title.notFound": "Not found",
   "title.build": "Tower // #{id} {label}",
+  "title.editBuild": "Tower // Edit Build #{id}",
   "title.report": "Tower // Report #{id}",
 
   "heading.builds": "Builds",
@@ -24,6 +25,7 @@
   "heading.logRun": "Log Run",
   "heading.notFound": "Not found",
   "heading.build": "Build #{id} {label}",
+  "heading.editBuild": "Edit Build #{id}",
   "heading.report": "Report #{id}",
 
   "buildForm.label": "Label",
@@ -31,6 +33,8 @@
   "buildForm.labelPlaceholder": "fire crit v3",
   "buildForm.notePlaceholder": "optional context",
   "buildForm.save": "Save snapshot",
+  "buildForm.saveEdit": "Save changes",
+  "buildForm.editing": "Editing build #{id} — updates this snapshot in place (for leveling up, not a respec).",
   "buildForm.newSnapshotLead": "A new snapshot. Or start from your last build via",
   "buildForm.respec": "respec",
   "buildForm.cloned": "Cloned from build #{id} — change only what moved, then save as a new snapshot. Untouched fields carry forward.",
@@ -46,6 +50,7 @@
   "buildsList.thNote": "Note",
   "buildsList.thSaved": "Saved",
 
+  "buildDetail.edit": "✎ edit this build",
   "buildDetail.respecFrom": "→ respec from this build",
   "buildDetail.noStats": "This snapshot has no stored stats.",
   "buildDetail.rawData": "raw data",

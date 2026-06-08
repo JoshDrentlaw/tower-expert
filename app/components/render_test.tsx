@@ -1,11 +1,12 @@
 // render_test.tsx — the component layer renders the schema correctly, with no
 // server or DB. Guards the JSX migration (and future schema/layout changes).
 
-import { assertStringIncludes } from "@std/assert";
+import { assert, assertStringIncludes } from "@std/assert";
 import { renderToString } from "preact-render-to-string";
 import { makeFormatter } from "../services/format.ts";
 import { makeT } from "../i18n/index.ts";
 import type { RequestContext } from "../services/ctx.ts";
+import type { Build } from "../../db/db.ts";
 import { BuildForm } from "./builds.tsx";
 import { Layout } from "./Layout.tsx";
 
@@ -56,6 +57,23 @@ Deno.test("BuildForm: parse-failed fields are aria-invalid and point at the erro
   assertStringIncludes(html, 'id="form-error"');
   assertStringIncludes(html, 'aria-invalid="true"');
   assertStringIncludes(html, 'aria-describedby="form-error"');
+});
+
+Deno.test("BuildForm in edit mode posts to the build, prefills label/note, drops parent input", () => {
+  const build = {
+    id: 7,
+    label: "Mixed",
+    note: "leveling",
+    parent_build_id: null,
+    data: {},
+    created_at: "",
+  } as unknown as Build;
+  const html = renderToString(<BuildForm ctx={ctx} opts={{ build, editId: 7 }} />);
+  assertStringIncludes(html, 'action="/tower/builds/7"');
+  assertStringIncludes(html, 'value="Mixed"'); // label prefilled, no "(respec)" suffix
+  assertStringIncludes(html, 'value="leveling"'); // existing note prefilled
+  assertStringIncludes(html, "Save changes");
+  assert(!html.includes('name="parent_build_id"'), "edit mode must not emit parent_build_id");
 });
 
 Deno.test("BuildForm renders translated chrome + game labels under es locale", () => {
