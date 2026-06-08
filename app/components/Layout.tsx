@@ -1,5 +1,4 @@
 // Layout.tsx — the full HTML document shell (head, embedded CSS, header/nav).
-// Ported 1:1 from the old views.ts layout(); JSX auto-escapes text + attrs.
 
 import type { ComponentChildren } from "preact";
 import type { RequestContext } from "../services/ctx.ts";
@@ -7,7 +6,7 @@ import type { RequestContext } from "../services/ctx.ts";
 const STYLE = `
   :root {
     --bg: #0e1116; --panel: #161b22; --line: #232a34;
-    --ink: #d7dde5; --muted: #8b97a7; --accent: #e8b450; --accent-dim: #7a6230;
+    --ink: #d7dde5; --muted: #8b97a7; --accent: #e8b450; --accent-dim: #b8922a;
     --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
     --body: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
@@ -20,8 +19,9 @@ const STYLE = `
     border-bottom: 1px solid var(--line); padding-bottom: .75rem; margin-bottom: 1.25rem; }
   h1 { font-family: var(--mono); font-size: 1.15rem; letter-spacing: .04em; margin: 0;
     color: var(--accent); text-transform: uppercase; }
+  nav { display: flex; flex-wrap: wrap; }
   nav a { color: var(--muted); text-decoration: none; font-family: var(--mono);
-    font-size: .8rem; margin-left: 1rem; }
+    font-size: .8rem; margin-left: .75rem; display: inline-block; padding: .4rem .25rem; }
   nav a:hover { color: var(--ink); }
   fieldset { border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
     margin: 0 0 1rem; padding: 1rem 1.1rem 1.2rem; }
@@ -34,13 +34,16 @@ const STYLE = `
     width: 100%; background: #0b0e13; color: var(--ink); border: 1px solid var(--line);
     border-radius: 6px; padding: .45rem .55rem; font-family: var(--mono); font-size: .9rem;
   }
-  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
+  input:focus, select:focus, textarea:focus, button:focus, a:focus, summary:focus {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent);
+  }
   .meta { display: grid; grid-template-columns: 1fr 2fr; gap: .75rem; margin-bottom: 1rem; }
   .actions { display: flex; gap: .75rem; align-items: center; margin-top: .5rem; }
   button { background: var(--accent); color: #1a1408; border: 0; border-radius: 6px;
     padding: .55rem 1.1rem; font-family: var(--mono); font-weight: 600; cursor: pointer; }
   button:hover { filter: brightness(1.08); }
   .hint { color: var(--muted); font-size: .78rem; }
+  .req { color: var(--accent); }
   table { width: 100%; border-collapse: collapse; font-size: .9rem; }
   th, td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid var(--line); }
   th { font-family: var(--mono); font-size: .72rem; text-transform: uppercase; color: var(--muted); }
@@ -55,10 +58,23 @@ const STYLE = `
   .col-hdr { font-family: var(--mono); font-size: .68rem; letter-spacing: .04em;
     text-transform: uppercase; color: var(--accent-dim);
     padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .skip-link { position: absolute; left: -9999px; }
+  .skip-link:focus { left: .5rem; top: .5rem; z-index: 999; background: var(--accent);
+    color: #1a1408; padding: .5rem 1rem; border-radius: 6px; font-family: var(--mono); }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
 `;
 
 export function Layout(
-  { ctx, title, children }: { ctx: RequestContext; title: string; children: ComponentChildren },
+  { ctx, title, heading, children }: {
+    ctx: RequestContext;
+    title: string;
+    heading?: string;
+    children: ComponentChildren;
+  },
 ) {
   const { base, t } = ctx;
   return (
@@ -70,9 +86,10 @@ export function Layout(
         <style dangerouslySetInnerHTML={{ __html: STYLE }} />
       </head>
       <body>
+        <a href="#main-content" class="skip-link">{t("a11y.skipToContent")}</a>
         <header>
           <h1>{t("app.title")}</h1>
-          <nav>
+          <nav aria-label={t("nav.ariaLabel")}>
             <a href={`${base}/builds`}>{t("nav.builds")}</a>
             <a href={`${base}/builds/new`}>{t("nav.newBuild")}</a>
             <a href={`${base}/builds/new?from=latest`}>{t("nav.respec")}</a>
@@ -80,7 +97,10 @@ export function Layout(
             <a href={`${base}/reports/new`}>{t("nav.logRun")}</a>
           </nav>
         </header>
-        {children}
+        <main id="main-content">
+          {heading ? <h2 class="sr-only">{heading}</h2> : null}
+          {children}
+        </main>
       </body>
     </html>
   );

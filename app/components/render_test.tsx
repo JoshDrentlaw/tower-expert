@@ -7,6 +7,7 @@ import { makeFormatter } from "../services/format.ts";
 import { makeT } from "../i18n/index.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import { BuildForm } from "./builds.tsx";
+import { Layout } from "./Layout.tsx";
 
 function ctxFor(locale: string): RequestContext {
   return { base: "/tower", locale, t: makeT(locale), fmt: makeFormatter(locale) };
@@ -34,6 +35,27 @@ Deno.test("BuildForm shows an error banner with role=alert", () => {
   const html = renderToString(<BuildForm ctx={ctx} opts={{ error: "Label is required." }} />);
   assertStringIncludes(html, 'role="alert"');
   assertStringIncludes(html, "Label is required.");
+});
+
+Deno.test("Layout: skip link, <main> landmark, labeled nav, sr-only heading", () => {
+  const html = renderToString(
+    <Layout ctx={ctx} title="t" heading="Builds">
+      <p>x</p>
+    </Layout>,
+  );
+  assertStringIncludes(html, 'class="skip-link"');
+  assertStringIncludes(html, '<main id="main-content"');
+  assertStringIncludes(html, 'aria-label="Main navigation"');
+  assertStringIncludes(html, 'class="sr-only">Builds</h2>');
+});
+
+Deno.test("BuildForm: parse-failed fields are aria-invalid and point at the error banner", () => {
+  const html = renderToString(
+    <BuildForm ctx={ctx} opts={{ error: "bad", invalidKeys: ["workshop_attack.damage"] }} />,
+  );
+  assertStringIncludes(html, 'id="form-error"');
+  assertStringIncludes(html, 'aria-invalid="true"');
+  assertStringIncludes(html, 'aria-describedby="form-error"');
 });
 
 Deno.test("BuildForm renders translated chrome + game labels under es locale", () => {

@@ -12,20 +12,38 @@ import { ReportDetail, ReportForm, ReportsList } from "../components/reports.tsx
 // 256 KB gives enormous headroom while blocking memory/DB abuse.
 const MAX_RAW_BYTES = 256 * 1024; // 256 KB
 
-function page(ctx: RequestContext, title: string, body: VNode, status = 200): Response {
-  return renderPage(<Layout ctx={ctx} title={title}>{body}</Layout>, status, {
+function page(
+  ctx: RequestContext,
+  title: string,
+  body: VNode,
+  status = 200,
+  heading?: string,
+): Response {
+  return renderPage(<Layout ctx={ctx} title={title} heading={heading}>{body}</Layout>, status, {
     "set-cookie": `lang=${ctx.locale}; Path=${ctx.base || "/"}; Max-Age=31536000; SameSite=Lax`,
   });
 }
 
 export async function handleReportList(ctx: RequestContext): Promise<Response> {
   const reports = await listReports();
-  return page(ctx, ctx.t("title.reports"), <ReportsList ctx={ctx} reports={reports} />);
+  return page(
+    ctx,
+    ctx.t("title.reports"),
+    <ReportsList ctx={ctx} reports={reports} />,
+    200,
+    ctx.t("heading.reports"),
+  );
 }
 
 export async function handleReportNew(ctx: RequestContext): Promise<Response> {
   const builds = await listBuilds();
-  return page(ctx, ctx.t("title.logRun"), <ReportForm ctx={ctx} builds={builds} />);
+  return page(
+    ctx,
+    ctx.t("title.logRun"),
+    <ReportForm ctx={ctx} builds={builds} />,
+    200,
+    ctx.t("heading.logRun"),
+  );
 }
 
 export async function handleReportSave(ctx: RequestContext, req: Request): Promise<Response> {
@@ -108,7 +126,14 @@ export async function handleReportDetail(ctx: RequestContext, id: number): Promi
       ctx.t("title.notFound"),
       <p class="hint">{ctx.t("reportDetail.notFound", { id })}</p>,
       404,
+      ctx.t("heading.notFound"),
     );
   }
-  return page(ctx, ctx.t("title.report", { id }), <ReportDetail ctx={ctx} r={report} />);
+  return page(
+    ctx,
+    ctx.t("title.report", { id }),
+    <ReportDetail ctx={ctx} r={report} />,
+    200,
+    ctx.t("heading.report", { id }),
+  );
 }

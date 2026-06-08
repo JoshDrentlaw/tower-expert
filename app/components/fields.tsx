@@ -16,6 +16,15 @@ const NUM_PLACEHOLDER: Record<NumUnit, string> = {
   sec: "e.g. 14s",
 };
 
+// Mobile keyboard per unit: "num" carries a letter suffix (K/M/B…) so it needs
+// the full keyboard; the others are pure decimals.
+const INPUTMODE: Record<NumUnit, string> = {
+  num: "text",
+  mult: "decimal",
+  pct: "decimal",
+  sec: "decimal",
+};
+
 type InputField = { key: string; type: FieldType; unit?: NumUnit; options?: string[] };
 
 // Translatable label for a stat/enhancement field (default = its schema label).
@@ -23,7 +32,13 @@ const statLabel = (t: TFunc, catKey: string, key: string, label: string) =>
   t(`stat.${catKey}.${key}`, { default: label });
 
 export function Field(
-  { ctx, cat, f, value }: { ctx: RequestContext; cat: Category; f: InputField; value: unknown },
+  { ctx, cat, f, value, invalid }: {
+    ctx: RequestContext;
+    cat: Category;
+    f: InputField;
+    value: unknown;
+    invalid?: boolean;
+  },
 ) {
   const name = `${cat.key}.${f.key}`;
   const v = value ?? "";
@@ -53,19 +68,26 @@ export function Field(
     <input
       id={name}
       type="text"
-      inputmode="text"
+      inputmode={INPUTMODE[unit]}
       autocomplete="off"
       autocapitalize="off"
       spellcheck={false}
       name={name}
       value={display}
       placeholder={ctx.t(`placeholder.${unit}`, { default: NUM_PLACEHOLDER[unit] })}
+      aria-invalid={invalid ? "true" : undefined}
+      aria-describedby={invalid ? "form-error" : undefined}
     />
   );
 }
 
 function GroupedSection(
-  { ctx, cat, catData }: { ctx: RequestContext; cat: Category; catData: Record<string, unknown> },
+  { ctx, cat, catData, invalid }: {
+    ctx: RequestContext;
+    cat: Category;
+    catData: Record<string, unknown>;
+    invalid?: Set<string>;
+  },
 ) {
   const { t } = ctx;
   const order: string[] = [];
@@ -90,7 +112,13 @@ function GroupedSection(
               {g.fields.map((f) => (
                 <div>
                   <label for={`${cat.key}.${f.key}`}>{statLabel(t, cat.key, f.key, f.label)}</label>
-                  <Field ctx={ctx} cat={cat} f={f} value={catData[f.key]} />
+                  <Field
+                    ctx={ctx}
+                    cat={cat}
+                    f={f}
+                    value={catData[f.key]}
+                    invalid={invalid?.has(`${cat.key}.${f.key}`)}
+                  />
                 </div>
               ))}
             </div>
@@ -102,10 +130,11 @@ function GroupedSection(
 }
 
 export function Section(
-  { ctx, cat, data }: {
+  { ctx, cat, data, invalid }: {
     ctx: RequestContext;
     cat: Category;
     data: Record<string, Record<string, unknown>>;
+    invalid?: Set<string>;
   },
 ) {
   const { t } = ctx;
@@ -113,7 +142,7 @@ export function Section(
   const title = t(`cat.${cat.key}`, { default: cat.title });
 
   if (cat.fields.some((f) => f.group)) {
-    return <GroupedSection ctx={ctx} cat={cat} catData={catData} />;
+    return <GroupedSection ctx={ctx} cat={cat} catData={catData} invalid={invalid} />;
   }
 
   const hasEnhancements = cat.fields.some((f) => f.enhancement);
@@ -125,7 +154,13 @@ export function Section(
           {cat.fields.map((f) => (
             <div>
               <label for={`${cat.key}.${f.key}`}>{statLabel(t, cat.key, f.key, f.label)}</label>
-              <Field ctx={ctx} cat={cat} f={f} value={catData[f.key]} />
+              <Field
+                ctx={ctx}
+                cat={cat}
+                f={f}
+                value={catData[f.key]}
+                invalid={invalid?.has(`${cat.key}.${f.key}`)}
+              />
             </div>
           ))}
         </div>
@@ -143,7 +178,13 @@ export function Section(
         {cat.fields.map((f, i) => (
           <div style={`grid-column:1;grid-row:${i + 2}`}>
             <label for={`${cat.key}.${f.key}`}>{statLabel(t, cat.key, f.key, f.label)}</label>
-            <Field ctx={ctx} cat={cat} f={f} value={catData[f.key]} />
+            <Field
+              ctx={ctx}
+              cat={cat}
+              f={f}
+              value={catData[f.key]}
+              invalid={invalid?.has(`${cat.key}.${f.key}`)}
+            />
           </div>
         ))}
         {cat.fields.map((f, i) =>
@@ -153,7 +194,13 @@ export function Section(
                 <label for={`${cat.key}.${f.enhancement.key}`}>
                   {statLabel(t, cat.key, f.enhancement.key, f.enhancement.label)}
                 </label>
-                <Field ctx={ctx} cat={cat} f={f.enhancement} value={catData[f.enhancement.key]} />
+                <Field
+                  ctx={ctx}
+                  cat={cat}
+                  f={f.enhancement}
+                  value={catData[f.enhancement.key]}
+                  invalid={invalid?.has(`${cat.key}.${f.enhancement.key}`)}
+                />
               </div>
             )
             : null

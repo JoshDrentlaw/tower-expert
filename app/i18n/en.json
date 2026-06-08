@@ -6,6 +6,9 @@
   "nav.respec": "respec",
   "nav.reports": "reports",
   "nav.logRun": "log run",
+  "nav.ariaLabel": "Main navigation",
+
+  "a11y.skipToContent": "Skip to content",
 
   "title.builds": "Tower // Builds",
   "title.newBuild": "Tower // New Build",
@@ -14,6 +17,14 @@
   "title.notFound": "Not found",
   "title.build": "Tower // #{id} {label}",
   "title.report": "Tower // Report #{id}",
+
+  "heading.builds": "Builds",
+  "heading.newBuild": "New Build",
+  "heading.reports": "Reports",
+  "heading.logRun": "Log Run",
+  "heading.notFound": "Not found",
+  "heading.build": "Build #{id} {label}",
+  "heading.report": "Report #{id}",
 
   "buildForm.label": "Label",
   "buildForm.note": "Note",
@@ -25,9 +36,11 @@
   "buildForm.cloned": "Cloned from build #{id} — change only what moved, then save as a new snapshot. Untouched fields carry forward.",
   "buildForm.upgrade": "Upgrade",
   "buildForm.enhancement": "Enhancement ×",
+  "buildForm.shorthandHint": "Enter values the way the game shows them — e.g. 869.03M, 56.4%, ×1.012, 14s. Suffix case matters: q (quadrillion) ≠ Q (quintillion).",
 
   "buildsList.empty": "No builds yet.",
   "buildsList.createOne": "Create one →",
+  "buildsList.caption": "Saved builds",
   "buildsList.thBuild": "Build",
   "buildsList.thRespecOf": "Respec of",
   "buildsList.thNote": "Note",
@@ -47,6 +60,7 @@
 
   "reportsList.empty": "No reports yet.",
   "reportsList.logRun": "Log a run →",
+  "reportsList.caption": "Logged battle reports",
   "reportsList.thNum": "#",
   "reportsList.thDate": "Date",
   "reportsList.thTier": "Tier",

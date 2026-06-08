@@ -16,6 +16,9 @@ export interface BuildFormOpts {
   submittedLabel?: string;
   submittedNote?: string;
   submittedData?: Record<string, Record<string, unknown>>;
+  // Field names (`${cat.key}.${field.key}`) that failed to parse — marked
+  // aria-invalid and pointed at the error banner.
+  invalidKeys?: string[];
 }
 
 export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: BuildFormOpts }) {
@@ -23,6 +26,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
   const data: Record<string, Record<string, unknown>> = opts.submittedData ?? opts.build?.data ??
     {};
   const parentId = opts.parentId ?? "";
+  const invalid = opts.invalidKeys ? new Set(opts.invalidKeys) : undefined;
   const labelValue = opts.submittedLabel !== undefined
     ? opts.submittedLabel
     : (opts.build ? `${opts.build.label} (respec)` : "");
@@ -42,11 +46,16 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
   return (
     <form method="post" action={`${base}/builds`}>
       <input type="hidden" name="parent_build_id" value={String(parentId)} />
-      {opts.error ? <p class="hint" style="color:#e88" role="alert">{opts.error}</p> : null}
+      {opts.error
+        ? <p id="form-error" class="hint" style="color:#e88" role="alert">{opts.error}</p>
+        : null}
       {respecNote}
+      <p class="hint">{t("buildForm.shorthandHint")}</p>
       <div class="meta">
         <div>
-          <label for="label">{t("buildForm.label")}</label>
+          <label for="label">
+            {t("buildForm.label")} <span class="req" aria-hidden="true">*</span>
+          </label>
           <input
             id="label"
             type="text"
@@ -54,6 +63,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
             value={labelValue}
             placeholder={t("buildForm.labelPlaceholder")}
             required
+            aria-required="true"
           />
         </div>
         <div>
@@ -67,7 +77,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
           />
         </div>
       </div>
-      {STAT_SCHEMA.map((cat) => <Section ctx={ctx} cat={cat} data={data} />)}
+      {STAT_SCHEMA.map((cat) => <Section ctx={ctx} cat={cat} data={data} invalid={invalid} />)}
       <div class="actions">
         <button type="submit">{t("buildForm.save")}</button>
       </div>
@@ -87,12 +97,13 @@ export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build
   }
   return (
     <table>
+      <caption class="sr-only">{t("buildsList.caption")}</caption>
       <thead>
         <tr>
-          <th>{t("buildsList.thBuild")}</th>
-          <th>{t("buildsList.thRespecOf")}</th>
-          <th>{t("buildsList.thNote")}</th>
-          <th>{t("buildsList.thSaved")}</th>
+          <th scope="col">{t("buildsList.thBuild")}</th>
+          <th scope="col">{t("buildsList.thRespecOf")}</th>
+          <th scope="col">{t("buildsList.thNote")}</th>
+          <th scope="col">{t("buildsList.thSaved")}</th>
         </tr>
       </thead>
       <tbody>
@@ -146,7 +157,7 @@ function DetailSection(
         : base;
       rows.push(
         <tr>
-          <th style={th}>{label}</th>
+          <th scope="row" style={th}>{label}</th>
           <td style="font-family:var(--mono)">{v}</td>
         </tr>,
       );
@@ -157,7 +168,7 @@ function DetailSection(
         const elabel = t(`stat.${cat.key}.${f.enhancement.key}`, { default: f.enhancement.label });
         rows.push(
           <tr>
-            <th style={th}>{elabel}</th>
+            <th scope="row" style={th}>{elabel}</th>
             <td style="font-family:var(--mono)">{ev}</td>
           </tr>,
         );

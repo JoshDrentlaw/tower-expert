@@ -15,17 +15,31 @@ const isNumeric = (t: FieldType) => t === "int" || t === "number";
 // prevents label text from overflowing list-view table cells.
 const MAX_LABEL_LENGTH = 200;
 
-function page(ctx: RequestContext, title: string, body: VNode, status = 200): Response {
-  return renderPage(<Layout ctx={ctx} title={title}>{body}</Layout>, status, {
+function page(
+  ctx: RequestContext,
+  title: string,
+  body: VNode,
+  status = 200,
+  heading?: string,
+): Response {
+  return renderPage(
+    <Layout ctx={ctx} title={title} heading={heading}>{body}</Layout>,
+    status,
     // Persist the resolved locale so a one-time ?lang= sticks.
-    "set-cookie": `lang=${ctx.locale}; Path=${ctx.base || "/"}; Max-Age=31536000; SameSite=Lax`,
-  });
+    { "set-cookie": `lang=${ctx.locale}; Path=${ctx.base || "/"}; Max-Age=31536000; SameSite=Lax` },
+  );
 }
 
 // GET {base}/builds  — history
 export async function handleList(ctx: RequestContext): Promise<Response> {
   const builds = await listBuilds();
-  return page(ctx, ctx.t("title.builds"), <BuildsList ctx={ctx} builds={builds} />);
+  return page(
+    ctx,
+    ctx.t("title.builds"),
+    <BuildsList ctx={ctx} builds={builds} />,
+    200,
+    ctx.t("heading.builds"),
+  );
 }
 
 // GET {base}/builds/new          — blank form
@@ -40,6 +54,8 @@ export async function handleNew(ctx: RequestContext, url: URL): Promise<Response
     ctx,
     ctx.t("title.newBuild"),
     <BuildForm ctx={ctx} opts={build ? { build, parentId: build.id } : {}} />,
+    200,
+    ctx.t("heading.newBuild"),
   );
 }
 
@@ -53,10 +69,11 @@ export async function handleSave(ctx: RequestContext, req: Request): Promise<Res
   const parent_build_id = parentRaw && /^\d+$/.test(parentRaw) ? Number(parentRaw) : null;
 
   // Assemble data[category][field] from the schema. A numeric field whose input
-  // is non-empty but unparseable is collected in `failed` (and echoed back)
-  // rather than silently dropped.
+  // is non-empty but unparseable is collected (label for the message, key for
+  // aria-invalid) and echoed back rather than silently dropped.
   const data: Record<string, Record<string, unknown>> = {};
   const failed: string[] = [];
+  const failedKeys: string[] = [];
   for (const cat of STAT_SCHEMA) {
     const section: Record<string, unknown> = {};
     const take = (key: string, type: FieldType, unit: NumUnit | undefined, label: string) => {
@@ -65,8 +82,8 @@ export async function handleSave(ctx: RequestContext, req: Request): Promise<Res
       if (value !== null) {
         section[key] = value;
       } else if (isNumeric(type) && raw !== null && raw.trim() !== "") {
-        // Translate the field label for the error message.
         failed.push(ctx.t(`stat.${cat.key}.${key}`, { default: label }));
+        failedKeys.push(`${cat.key}.${key}`);
         section[key] = raw; // echo the bad input back into the re-rendered field
       }
     };
@@ -102,9 +119,11 @@ export async function handleSave(ctx: RequestContext, req: Request): Promise<Res
           submittedLabel: labelRaw ?? "",
           submittedNote: note ?? "",
           submittedData: data,
+          invalidKeys: failedKeys,
         }}
       />,
       status,
+      ctx.t("heading.newBuild"),
     );
   }
 
@@ -121,11 +140,14 @@ export async function handleDetail(ctx: RequestContext, id: number): Promise<Res
       ctx.t("title.notFound"),
       <p class="hint">{ctx.t("buildDetail.notFound", { id })}</p>,
       404,
+      ctx.t("heading.notFound"),
     );
   }
   return page(
     ctx,
     ctx.t("title.build", { id, label: build.label }),
     <BuildDetail ctx={ctx} b={build} />,
+    200,
+    ctx.t("heading.build", { id, label: build.label }),
   );
 }
