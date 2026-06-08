@@ -10,8 +10,8 @@ import type { Build } from "../../db/db.ts";
 import { BuildForm } from "./builds.tsx";
 import { Layout } from "./Layout.tsx";
 
-function ctxFor(locale: string): RequestContext {
-  return { base: "/tower", locale, t: makeT(locale), fmt: makeFormatter(locale) };
+function ctxFor(locale: string, path = "/tower/builds/new"): RequestContext {
+  return { base: "/tower", locale, path, t: makeT(locale), fmt: makeFormatter(locale) };
 }
 const ctx = ctxFor("en");
 
@@ -36,6 +36,31 @@ Deno.test("BuildForm shows an error banner with role=alert", () => {
   const html = renderToString(<BuildForm ctx={ctx} opts={{ error: "Label is required." }} />);
   assertStringIncludes(html, 'role="alert"');
   assertStringIncludes(html, "Label is required.");
+});
+
+Deno.test("BuildForm: sections collapse by default, open when they hold data", () => {
+  const empty = renderToString(<BuildForm ctx={ctx} opts={{}} />);
+  assertStringIncludes(empty, 'class="section"');
+  assertStringIncludes(empty, 'class="count"');
+  assert(
+    !empty.includes('<details class="section" open>'),
+    "empty new build: all sections collapsed",
+  );
+
+  const withData = renderToString(
+    <BuildForm ctx={ctx} opts={{ submittedData: { workshop_attack: { damage: 1000000 } } }} />,
+  );
+  assertStringIncludes(withData, '<details class="section" open>');
+});
+
+Deno.test("Layout: nav omits respec and marks the active section", () => {
+  const html = renderToString(
+    <Layout ctx={ctxFor("en", "/tower/builds")} title="t" heading="Builds">
+      <p>x</p>
+    </Layout>,
+  );
+  assert(!html.includes('href="/tower/builds/new?from=latest"'), "respec link removed from nav");
+  assertStringIncludes(html, 'href="/tower/builds" aria-current="page"');
 });
 
 Deno.test("Layout: skip link, <main> landmark, labeled nav, sr-only heading", () => {

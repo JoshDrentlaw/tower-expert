@@ -47,6 +47,8 @@
   "buildsList.thNote": "Nota",
   "buildsList.thSaved": "Guardado",
 
+  "reportDetail.fullData": "Datos completos del reporte",
+
   "buildDetail.edit": "✎ editar este build",
   "buildDetail.respecFrom": "→ respec desde este build",
   "buildDetail.noStats": "Este snapshot no tiene stats guardados.",

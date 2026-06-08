@@ -23,6 +23,7 @@ const STYLE = `
   nav a { color: var(--muted); text-decoration: none; font-family: var(--mono);
     font-size: .8rem; margin-left: .75rem; display: inline-block; padding: .4rem .25rem; }
   nav a:hover { color: var(--ink); }
+  nav a[aria-current="page"] { color: var(--ink); border-bottom: 2px solid var(--accent); }
   fieldset { border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
     margin: 0 0 1rem; padding: 1rem 1.1rem 1.2rem; }
   legend { font-family: var(--mono); font-size: .78rem; letter-spacing: .05em;
@@ -58,6 +59,18 @@ const STYLE = `
   .col-hdr { font-family: var(--mono); font-size: .68rem; letter-spacing: .04em;
     text-transform: uppercase; color: var(--accent-dim);
     padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
+  details.section { border: 1px solid var(--line); border-radius: 8px;
+    background: var(--panel); margin: 0 0 1rem; }
+  details.section > summary { font-family: var(--mono); font-size: .78rem;
+    letter-spacing: .05em; text-transform: uppercase; color: var(--accent);
+    padding: .8rem 1.1rem; cursor: pointer; list-style: none;
+    display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  details.section > summary::-webkit-details-marker { display: none; }
+  details.section[open] > summary { border-bottom: 1px solid var(--line); }
+  details.section .count { color: var(--muted); font-size: .72rem; font-weight: normal; }
+  .section-body { padding: 1rem 1.1rem 1.2rem; }
+  .actions.sticky { position: sticky; bottom: .5rem; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; padding: .75rem; margin-top: 1rem; z-index: 5; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   .skip-link { position: absolute; left: -9999px; }
@@ -76,7 +89,13 @@ export function Layout(
     children: ComponentChildren;
   },
 ) {
-  const { base, t } = ctx;
+  const { base, t, path } = ctx;
+  // Active section (respec lives in-context now, not in the nav).
+  const newBuild = path === `${base}/builds/new`;
+  const logRun = path === `${base}/reports/new`;
+  const builds = path.startsWith(`${base}/builds`) && !newBuild;
+  const reports = path.startsWith(`${base}/reports`) && !logRun;
+  const cur = (on: boolean) => (on ? "page" : undefined);
   return (
     <html lang={ctx.locale}>
       <head>
@@ -90,11 +109,10 @@ export function Layout(
         <header>
           <h1>{t("app.title")}</h1>
           <nav aria-label={t("nav.ariaLabel")}>
-            <a href={`${base}/builds`}>{t("nav.builds")}</a>
-            <a href={`${base}/builds/new`}>{t("nav.newBuild")}</a>
-            <a href={`${base}/builds/new?from=latest`}>{t("nav.respec")}</a>
-            <a href={`${base}/reports`}>{t("nav.reports")}</a>
-            <a href={`${base}/reports/new`}>{t("nav.logRun")}</a>
+            <a href={`${base}/builds`} aria-current={cur(builds)}>{t("nav.builds")}</a>
+            <a href={`${base}/builds/new`} aria-current={cur(newBuild)}>{t("nav.newBuild")}</a>
+            <a href={`${base}/reports`} aria-current={cur(reports)}>{t("nav.reports")}</a>
+            <a href={`${base}/reports/new`} aria-current={cur(logRun)}>{t("nav.logRun")}</a>
           </nav>
         </header>
         <main id="main-content">

@@ -1,7 +1,7 @@
 // fields.tsx — the schema-driven form pieces: a single input (Field) and the
 // three category layouts (flat grid / paired upgrade+enhancement / grouped
-// columns). Labels/titles/placeholders go through ctx.t (defaulting to the
-// schema's English labels), so every game term is translatable.
+// columns), each wrapped in a collapsible <details> section with a filled-count.
+// Labels/titles/placeholders go through ctx.t (defaulting to the schema labels).
 
 import { formatNum, type NumUnit } from "../num_format.ts";
 import type { Category, Field as SchemaField, FieldType } from "../stat_schema.ts";
@@ -30,6 +30,8 @@ type InputField = { key: string; type: FieldType; unit?: NumUnit; options?: stri
 // Translatable label for a stat/enhancement field (default = its schema label).
 const statLabel = (t: TFunc, catKey: string, key: string, label: string) =>
   t(`stat.${catKey}.${key}`, { default: label });
+
+const hasValue = (v: unknown) => v !== undefined && v !== null && v !== "";
 
 export function Field(
   { ctx, cat, f, value, invalid }: {
@@ -60,7 +62,7 @@ export function Field(
 
   const unit = f.unit ?? "num";
   let display = "";
-  if (value !== null && value !== undefined && value !== "") {
+  if (hasValue(value)) {
     const n = typeof value === "number" ? value : Number(value);
     display = Number.isFinite(n) ? formatNum(n, unit) : String(value);
   }
@@ -81,7 +83,28 @@ export function Field(
   );
 }
 
-function GroupedSection(
+function labelledField(
+  ctx: RequestContext,
+  cat: Category,
+  f: InputField & { label: string },
+  catData: Record<string, unknown>,
+  invalid?: Set<string>,
+) {
+  return (
+    <div>
+      <label for={`${cat.key}.${f.key}`}>{statLabel(ctx.t, cat.key, f.key, f.label)}</label>
+      <Field
+        ctx={ctx}
+        cat={cat}
+        f={f}
+        value={catData[f.key]}
+        invalid={invalid?.has(`${cat.key}.${f.key}`)}
+      />
+    </div>
+  );
+}
+
+function GroupedBody(
   { ctx, cat, catData, invalid }: {
     ctx: RequestContext;
     cat: Category;
@@ -101,31 +124,62 @@ function GroupedSection(
     byGroup.get(g.key)!.fields.push(f);
   }
   return (
-    <fieldset>
-      <legend>{t(`cat.${cat.key}`, { default: cat.title })}</legend>
-      <div class="mod-grid">
-        {order.map((k) => {
-          const g = byGroup.get(k)!;
-          return (
-            <div class="mod-col">
-              <div class="col-hdr">{t(`mod.${k}`, { default: g.label })}</div>
-              {g.fields.map((f) => (
-                <div>
-                  <label for={`${cat.key}.${f.key}`}>{statLabel(t, cat.key, f.key, f.label)}</label>
-                  <Field
-                    ctx={ctx}
-                    cat={cat}
-                    f={f}
-                    value={catData[f.key]}
-                    invalid={invalid?.has(`${cat.key}.${f.key}`)}
-                  />
-                </div>
-              ))}
+    <div class="mod-grid">
+      {order.map((k) => {
+        const g = byGroup.get(k)!;
+        return (
+          <div class="mod-col">
+            <div class="col-hdr">{t(`mod.${k}`, { default: g.label })}</div>
+            {g.fields.map((f) => labelledField(ctx, cat, f, catData, invalid))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FlatBody(
+  { ctx, cat, catData, invalid }: {
+    ctx: RequestContext;
+    cat: Category;
+    catData: Record<string, unknown>;
+    invalid?: Set<string>;
+  },
+) {
+  return (
+    <div class="grid">{cat.fields.map((f) => labelledField(ctx, cat, f, catData, invalid))}</div>
+  );
+}
+
+function PairedBody(
+  { ctx, cat, catData, invalid }: {
+    ctx: RequestContext;
+    cat: Category;
+    catData: Record<string, unknown>;
+    invalid?: Set<string>;
+  },
+) {
+  const { t } = ctx;
+  // Upgrades in col 1 (DOM-first = tab-first), enhancements in col 2.
+  return (
+    <div class="paired-grid">
+      <div class="col-hdr" style="grid-column:1;grid-row:1">{t("buildForm.upgrade")}</div>
+      <div class="col-hdr" style="grid-column:2;grid-row:1">{t("buildForm.enhancement")}</div>
+      {cat.fields.map((f, i) => (
+        <div style={`grid-column:1;grid-row:${i + 2}`}>
+          {labelledField(ctx, cat, f, catData, invalid)}
+        </div>
+      ))}
+      {cat.fields.map((f, i) =>
+        f.enhancement
+          ? (
+            <div style={`grid-column:2;grid-row:${i + 2}`}>
+              {labelledField(ctx, cat, f.enhancement, catData, invalid)}
             </div>
-          );
-        })}
-      </div>
-    </fieldset>
+          )
+          : null
+      )}
+    </div>
   );
 }
 
@@ -141,71 +195,29 @@ export function Section(
   const catData = (data[cat.key] as Record<string, unknown> | undefined) ?? {};
   const title = t(`cat.${cat.key}`, { default: cat.title });
 
-  if (cat.fields.some((f) => f.group)) {
-    return <GroupedSection ctx={ctx} cat={cat} catData={catData} invalid={invalid} />;
+  // Filled-count across every input (field + enhancement) in the category.
+  const keys: string[] = [];
+  for (const f of cat.fields) {
+    keys.push(f.key);
+    if (f.enhancement) keys.push(f.enhancement.key);
   }
+  const filled = keys.reduce((n, k) => n + (hasValue(catData[k]) ? 1 : 0), 0);
 
-  const hasEnhancements = cat.fields.some((f) => f.enhancement);
-  if (!hasEnhancements) {
-    return (
-      <fieldset>
-        <legend>{title}</legend>
-        <div class="grid">
-          {cat.fields.map((f) => (
-            <div>
-              <label for={`${cat.key}.${f.key}`}>{statLabel(t, cat.key, f.key, f.label)}</label>
-              <Field
-                ctx={ctx}
-                cat={cat}
-                f={f}
-                value={catData[f.key]}
-                invalid={invalid?.has(`${cat.key}.${f.key}`)}
-              />
-            </div>
-          ))}
-        </div>
-      </fieldset>
-    );
-  }
+  const body = cat.fields.some((f) => f.group)
+    ? <GroupedBody ctx={ctx} cat={cat} catData={catData} invalid={invalid} />
+    : cat.fields.some((f) => f.enhancement)
+    ? <PairedBody ctx={ctx} cat={cat} catData={catData} invalid={invalid} />
+    : <FlatBody ctx={ctx} cat={cat} catData={catData} invalid={invalid} />;
 
-  // Upgrades in col 1 (DOM-first = tab-first), enhancements in col 2.
+  // Open sections that already hold data; collapse empty ones so a fresh form
+  // isn't a wall of inputs.
   return (
-    <fieldset>
-      <legend>{title}</legend>
-      <div class="paired-grid">
-        <div class="col-hdr" style="grid-column:1;grid-row:1">{t("buildForm.upgrade")}</div>
-        <div class="col-hdr" style="grid-column:2;grid-row:1">{t("buildForm.enhancement")}</div>
-        {cat.fields.map((f, i) => (
-          <div style={`grid-column:1;grid-row:${i + 2}`}>
-            <label for={`${cat.key}.${f.key}`}>{statLabel(t, cat.key, f.key, f.label)}</label>
-            <Field
-              ctx={ctx}
-              cat={cat}
-              f={f}
-              value={catData[f.key]}
-              invalid={invalid?.has(`${cat.key}.${f.key}`)}
-            />
-          </div>
-        ))}
-        {cat.fields.map((f, i) =>
-          f.enhancement
-            ? (
-              <div style={`grid-column:2;grid-row:${i + 2}`}>
-                <label for={`${cat.key}.${f.enhancement.key}`}>
-                  {statLabel(t, cat.key, f.enhancement.key, f.enhancement.label)}
-                </label>
-                <Field
-                  ctx={ctx}
-                  cat={cat}
-                  f={f.enhancement}
-                  value={catData[f.enhancement.key]}
-                  invalid={invalid?.has(`${cat.key}.${f.enhancement.key}`)}
-                />
-              </div>
-            )
-            : null
-        )}
-      </div>
-    </fieldset>
+    <details class="section" open={filled > 0}>
+      <summary>
+        <span>{title}</span>
+        <span class="count">{filled}/{keys.length}</span>
+      </summary>
+      <div class="section-body">{body}</div>
+    </details>
   );
 }

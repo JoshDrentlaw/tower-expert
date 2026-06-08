@@ -89,7 +89,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
         </div>
       </div>
       {STAT_SCHEMA.map((cat) => <Section ctx={ctx} cat={cat} data={data} invalid={invalid} />)}
-      <div class="actions">
+      <div class="actions sticky">
         <button type="submit">{t(isEdit ? "buildForm.saveEdit" : "buildForm.save")}</button>
       </div>
     </form>
