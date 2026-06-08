@@ -3,6 +3,25 @@
 import type { VNode } from "preact";
 import type { BattleReport, Build } from "../../db/db.ts";
 import type { RequestContext } from "../services/ctx.ts";
+import type { TFunc } from "../i18n/index.ts";
+
+// The "date was inferred" marker: a visual (color + short text, hidden from
+// assistive tech) plus a screen-reader-only full explanation.
+function DateInferred({ t, short }: { t: TFunc; short: boolean }) {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        title={t("reportDetail.dateInferredTitle")}
+        style="color:#e88;font-size:.8rem;"
+      >
+        {" "}
+        {short ? t("reportDetail.dateInferredShort") : t("reportDetail.dateInferred")}
+      </span>
+      <span class="sr-only">{t("reportDetail.dateInferredTitle")}</span>
+    </>
+  );
+}
 
 export function ReportForm(
   { ctx, builds, opts = {} }: {
@@ -15,7 +34,9 @@ export function ReportForm(
   const selectedBuildId = opts.buildId != null ? String(opts.buildId) : "";
   return (
     <form method="post" action={`${base}/reports`}>
-      {opts.error ? <p class="hint" style="color:#e88" role="alert">{opts.error}</p> : null}
+      {opts.error
+        ? <p id="form-error" class="hint" style="color:#e88" role="alert">{opts.error}</p>
+        : null}
       <p class="hint">{t("reportForm.hint")}</p>
       <div class="meta">
         <div>
@@ -62,15 +83,16 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
   }
   return (
     <table>
+      <caption class="sr-only">{t("reportsList.caption")}</caption>
       <thead>
         <tr>
-          <th>{t("reportsList.thNum")}</th>
-          <th>{t("reportsList.thDate")}</th>
-          <th>{t("reportsList.thTier")}</th>
-          <th>{t("reportsList.thWave")}</th>
-          <th>{t("reportsList.thCoins")}</th>
-          <th>{t("reportsList.thDuration")}</th>
-          <th>{t("reportsList.thBuild")}</th>
+          <th scope="col">{t("reportsList.thNum")}</th>
+          <th scope="col">{t("reportsList.thDate")}</th>
+          <th scope="col">{t("reportsList.thTier")}</th>
+          <th scope="col">{t("reportsList.thWave")}</th>
+          <th scope="col">{t("reportsList.thCoins")}</th>
+          <th scope="col">{t("reportsList.thDuration")}</th>
+          <th scope="col">{t("reportsList.thBuild")}</th>
         </tr>
       </thead>
       <tbody>
@@ -81,17 +103,7 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
             </td>
             <td class="hint">
               {fmt.dateTime(r.occurred_at)}
-              {r.date_inferred
-                ? (
-                  <span
-                    title={t("reportDetail.dateInferredTitle")}
-                    style="color:#e88;font-size:.7rem;"
-                  >
-                    {" "}
-                    {t("reportDetail.dateInferredShort")}
-                  </span>
-                )
-                : null}
+              {r.date_inferred ? <DateInferred t={t} short /> : null}
             </td>
             <td>{r.tier?.toString() ?? "—"}</td>
             <td>{fmt.integer(r.wave)}</td>
@@ -116,52 +128,45 @@ export function ReportDetail({ ctx, r }: { ctx: RequestContext; r: BattleReport 
 
   const rows: VNode[] = [
     <tr>
-      <th style={th}>{t("reportDetail.occurred")}</th>
+      <th scope="row" style={th}>{t("reportDetail.occurred")}</th>
       <td>
         {fmt.dateTime(r.occurred_at)}
-        {r.date_inferred
-          ? (
-            <span title={t("reportDetail.dateInferredTitle")} style="color:#e88;font-size:.8rem;">
-              {" "}
-              {t("reportDetail.dateInferred")}
-            </span>
-          )
-          : null}
+        {r.date_inferred ? <DateInferred t={t} short={false} /> : null}
       </td>
     </tr>,
     <tr>
-      <th style={th}>{t("reportDetail.tier")}</th>
+      <th scope="row" style={th}>{t("reportDetail.tier")}</th>
       <td>{r.tier?.toString() ?? "—"}</td>
     </tr>,
     <tr>
-      <th style={th}>{t("reportDetail.wave")}</th>
+      <th scope="row" style={th}>{t("reportDetail.wave")}</th>
       <td>{fmt.integer(r.wave)}</td>
     </tr>,
     <tr>
-      <th style={th}>{t("reportDetail.coinsEarned")}</th>
+      <th scope="row" style={th}>{t("reportDetail.coinsEarned")}</th>
       <td>{br["Coins Earned"] ?? fmt.num(r.coins)}</td>
     </tr>,
     <tr>
-      <th style={th}>{t("reportDetail.coinsHour")}</th>
+      <th scope="row" style={th}>{t("reportDetail.coinsHour")}</th>
       <td>{br["Coins Per Hour"] ?? "—"}</td>
     </tr>,
     <tr>
-      <th style={th}>{t("reportDetail.cellsEarned")}</th>
+      <th scope="row" style={th}>{t("reportDetail.cellsEarned")}</th>
       <td>{br["Cells Earned"] ?? "—"}</td>
     </tr>,
     <tr>
-      <th style={th}>{t("reportDetail.realTime")}</th>
+      <th scope="row" style={th}>{t("reportDetail.realTime")}</th>
       <td>{br["Real Time"] ?? fmt.duration(r.duration_s)}</td>
     </tr>,
     <tr>
-      <th style={th}>{t("reportDetail.killedBy")}</th>
+      <th scope="row" style={th}>{t("reportDetail.killedBy")}</th>
       <td>{br["Killed By"] ?? "—"}</td>
     </tr>,
   ];
   if (r.build_id) {
     rows.push(
       <tr>
-        <th style={th}>{t("reportDetail.build")}</th>
+        <th scope="row" style={th}>{t("reportDetail.build")}</th>
         <td>
           <a href={`${base}/builds/${r.build_id}`} style="color:var(--accent)">
             #{r.build_id} {r.build_label ?? ""}

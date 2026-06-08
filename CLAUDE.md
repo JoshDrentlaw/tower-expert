@@ -138,8 +138,12 @@ Requires a `.env` with `DATABASE_URL`. `BASE_PATH` defaults to `/tower`.
   sequenced manually.
 - **`listBuilds`/`listReports` hard-cap at 100 rows** with no pagination — older rows silently
   disappear from list views and the report build-picker.
-- **Accessibility gaps** in the forms (focus contrast, label `for`/`id` associations, mobile reflow)
-  are known and not yet addressed.
+- **Accessibility baseline shipped** (Edna audit → fixes): WCAG-AA contrast, focus ring on all
+  interactives, `<main>` + skip link, `<th scope>` + table captions,
+  `aria-invalid`/`aria-describedby` on parse-failed fields, per-unit `inputmode`, sr-only page
+  headings. **Deferred (documented):** the `.paired-grid` tab order reads all upgrades then all
+  enhancements (matches the in-game Workshop screen) rather than interleaving paired rows — a
+  meaningful-sequence tradeoff (WCAG 1.3.2) kept on purpose.
 
 ## Subagents
 

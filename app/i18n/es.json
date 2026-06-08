@@ -6,12 +6,23 @@
   "nav.respec": "respec",
   "nav.reports": "reportes",
   "nav.logRun": "registrar run",
+  "nav.ariaLabel": "Navegación principal",
+
+  "a11y.skipToContent": "Saltar al contenido",
 
   "title.builds": "Tower // Builds",
   "title.newBuild": "Tower // Nuevo Build",
   "title.reports": "Tower // Reportes",
   "title.logRun": "Tower // Registrar Run",
   "title.notFound": "No encontrado",
+
+  "heading.builds": "Builds",
+  "heading.newBuild": "Nuevo Build",
+  "heading.reports": "Reportes",
+  "heading.logRun": "Registrar Run",
+  "heading.notFound": "No encontrado",
+  "heading.build": "Build #{id} {label}",
+  "heading.report": "Reporte #{id}",
 
   "buildForm.label": "Etiqueta",
   "buildForm.note": "Nota",
@@ -22,9 +33,11 @@
   "buildForm.cloned": "Clonado del build #{id} — cambia solo lo que se movió, luego guarda como un nuevo snapshot. Los campos sin tocar se mantienen.",
   "buildForm.upgrade": "Mejora",
   "buildForm.enhancement": "Realce ×",
+  "buildForm.shorthandHint": "Ingresa los valores como los muestra el juego — p. ej. 869.03M, 56.4%, ×1.012, 14s. Importa la mayúscula del sufijo: q (mil billones) ≠ Q (trillón).",
 
   "buildsList.empty": "Aún no hay builds.",
   "buildsList.createOne": "Crear uno →",
+  "buildsList.caption": "Builds guardados",
   "buildsList.thBuild": "Build",
   "buildsList.thRespecOf": "Respec de",
   "buildsList.thNote": "Nota",
