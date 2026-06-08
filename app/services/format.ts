@@ -8,11 +8,14 @@
 import { formatNum, type NumUnit } from "../num_format.ts";
 
 export interface Formatter {
-  /** Game-style magnitude/percent/multiplier/seconds, per unit. */
+  /** Game-style magnitude/percent/multiplier/seconds, per unit. Locale-neutral
+   *  on purpose — the game's notation (869.03M, ×1.012) is canonical. */
   num(n: number | null | undefined, unit?: NumUnit): string;
+  /** A plain count (wave, etc.) with locale-aware grouping; "—" when null. */
+  integer(n: number | null | undefined): string;
   /** A duration in seconds → "1h 2m 3s". */
   duration(s: number | null): string;
-  /** An ISO timestamp (or Date) → human date-time. */
+  /** An ISO timestamp (or Date) → locale-aware date-time. */
   dateTime(v: string | number | Date): string;
 }
 
@@ -24,12 +27,12 @@ function fmtDuration(s: number | null): string {
   return [h && `${h}h`, m && `${m}m`, `${sec}s`].filter(Boolean).join(" ");
 }
 
-export function makeFormatter(_locale: string): Formatter {
+export function makeFormatter(locale: string): Formatter {
   return {
     num: (n, unit) => formatNum(n, unit),
+    integer: (n) =>
+      (n === null || n === undefined || !Number.isFinite(n)) ? "—" : n.toLocaleString(locale),
     duration: (s) => fmtDuration(s),
-    // Matches the pre-refactor output; the i18n step swaps this for a
-    // locale-pinned Intl.DateTimeFormat.
-    dateTime: (v) => new Date(v).toLocaleString(),
+    dateTime: (v) => new Date(v).toLocaleString(locale),
   };
 }

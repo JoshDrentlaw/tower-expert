@@ -1,11 +1,8 @@
-// reports.tsx — battle-report form, list, and detail.
-// Ported 1:1 from views.ts (reportForm, reportsList, reportDetail).
+// reports.tsx — battle-report form, list, and detail. Chrome goes through ctx.t.
 
 import type { VNode } from "preact";
 import type { BattleReport, Build } from "../../db/db.ts";
 import type { RequestContext } from "../services/ctx.ts";
-
-const DATE_INFERRED_TITLE = "Battle Date missing or unparseable — using insert time";
 
 export function ReportForm(
   { ctx, builds, opts = {} }: {
@@ -14,20 +11,17 @@ export function ReportForm(
     opts?: { raw?: string; buildId?: string | number; error?: string };
   },
 ) {
-  const { base } = ctx;
+  const { base, t } = ctx;
   const selectedBuildId = opts.buildId != null ? String(opts.buildId) : "";
   return (
     <form method="post" action={`${base}/reports`}>
       {opts.error ? <p class="hint" style="color:#e88" role="alert">{opts.error}</p> : null}
-      <p class="hint">
-        Paste your after-run battle report below. Tier, wave, coins, and duration are extracted
-        automatically.
-      </p>
+      <p class="hint">{t("reportForm.hint")}</p>
       <div class="meta">
         <div>
-          <label for="build_id">Build (optional)</label>
+          <label for="build_id">{t("reportForm.buildOptional")}</label>
           <select id="build_id" name="build_id">
-            <option value="">— no build linked —</option>
+            <option value="">{t("reportForm.noBuild")}</option>
             {builds.map((b) => (
               <option value={String(b.id)} selected={String(b.id) === selectedBuildId}>
                 #{b.id} {b.label}
@@ -38,30 +32,31 @@ export function ReportForm(
         <div></div>
       </div>
       <div style="margin-bottom:1rem;">
-        <label for="raw">Battle Report Paste</label>
+        <label for="raw">{t("reportForm.pasteLabel")}</label>
         <textarea
           id="raw"
           name="raw"
           rows={22}
-          placeholder="Paste your after-run report here..."
+          placeholder={t("reportForm.pastePlaceholder")}
           style="font-size:.78rem;line-height:1.5;resize:vertical;"
         >
           {opts.raw ?? ""}
         </textarea>
       </div>
       <div class="actions">
-        <button type="submit">Save report</button>
+        <button type="submit">{t("reportForm.save")}</button>
       </div>
     </form>
   );
 }
 
 export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: BattleReport[] }) {
-  const { base, fmt } = ctx;
+  const { base, t, fmt } = ctx;
   if (reports.length === 0) {
     return (
       <p class="hint">
-        No reports yet. <a href={`${base}/reports/new`} style="color:var(--accent)">Log a run →</a>
+        {t("reportsList.empty")}{" "}
+        <a href={`${base}/reports/new`} style="color:var(--accent)">{t("reportsList.logRun")}</a>
       </p>
     );
   }
@@ -69,13 +64,13 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
     <table>
       <thead>
         <tr>
-          <th>#</th>
-          <th>Date</th>
-          <th>Tier</th>
-          <th>Wave</th>
-          <th>Coins</th>
-          <th>Duration</th>
-          <th>Build</th>
+          <th>{t("reportsList.thNum")}</th>
+          <th>{t("reportsList.thDate")}</th>
+          <th>{t("reportsList.thTier")}</th>
+          <th>{t("reportsList.thWave")}</th>
+          <th>{t("reportsList.thCoins")}</th>
+          <th>{t("reportsList.thDuration")}</th>
+          <th>{t("reportsList.thBuild")}</th>
         </tr>
       </thead>
       <tbody>
@@ -88,14 +83,18 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
               {fmt.dateTime(r.occurred_at)}
               {r.date_inferred
                 ? (
-                  <span title={DATE_INFERRED_TITLE} style="color:#e88;font-size:.7rem;">
-                    {" [?]"}
+                  <span
+                    title={t("reportDetail.dateInferredTitle")}
+                    style="color:#e88;font-size:.7rem;"
+                  >
+                    {" "}
+                    {t("reportDetail.dateInferredShort")}
                   </span>
                 )
                 : null}
             </td>
             <td>{r.tier?.toString() ?? "—"}</td>
-            <td>{r.wave?.toLocaleString() ?? "—"}</td>
+            <td>{fmt.integer(r.wave)}</td>
             <td>{fmt.num(r.coins)}</td>
             <td class="hint">{fmt.duration(r.duration_s)}</td>
             <td>
@@ -111,57 +110,58 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
 }
 
 export function ReportDetail({ ctx, r }: { ctx: RequestContext; r: BattleReport }) {
-  const { base, fmt } = ctx;
+  const { base, t, fmt } = ctx;
   const br = r.parsed["battle_report"] ?? {};
   const th = "width:160px;font-weight:normal";
 
   const rows: VNode[] = [
     <tr>
-      <th style={th}>Occurred</th>
+      <th style={th}>{t("reportDetail.occurred")}</th>
       <td>
         {fmt.dateTime(r.occurred_at)}
         {r.date_inferred
           ? (
-            <span title={DATE_INFERRED_TITLE} style="color:#e88;font-size:.8rem;">
-              {" [date inferred]"}
+            <span title={t("reportDetail.dateInferredTitle")} style="color:#e88;font-size:.8rem;">
+              {" "}
+              {t("reportDetail.dateInferred")}
             </span>
           )
           : null}
       </td>
     </tr>,
     <tr>
-      <th style={th}>Tier</th>
+      <th style={th}>{t("reportDetail.tier")}</th>
       <td>{r.tier?.toString() ?? "—"}</td>
     </tr>,
     <tr>
-      <th style={th}>Wave</th>
-      <td>{r.wave?.toLocaleString() ?? "—"}</td>
+      <th style={th}>{t("reportDetail.wave")}</th>
+      <td>{fmt.integer(r.wave)}</td>
     </tr>,
     <tr>
-      <th style={th}>Coins Earned</th>
+      <th style={th}>{t("reportDetail.coinsEarned")}</th>
       <td>{br["Coins Earned"] ?? fmt.num(r.coins)}</td>
     </tr>,
     <tr>
-      <th style={th}>Coins / Hour</th>
+      <th style={th}>{t("reportDetail.coinsHour")}</th>
       <td>{br["Coins Per Hour"] ?? "—"}</td>
     </tr>,
     <tr>
-      <th style={th}>Cells Earned</th>
+      <th style={th}>{t("reportDetail.cellsEarned")}</th>
       <td>{br["Cells Earned"] ?? "—"}</td>
     </tr>,
     <tr>
-      <th style={th}>Real Time</th>
+      <th style={th}>{t("reportDetail.realTime")}</th>
       <td>{br["Real Time"] ?? fmt.duration(r.duration_s)}</td>
     </tr>,
     <tr>
-      <th style={th}>Killed By</th>
+      <th style={th}>{t("reportDetail.killedBy")}</th>
       <td>{br["Killed By"] ?? "—"}</td>
     </tr>,
   ];
   if (r.build_id) {
     rows.push(
       <tr>
-        <th style={th}>Build</th>
+        <th style={th}>{t("reportDetail.build")}</th>
         <td>
           <a href={`${base}/builds/${r.build_id}`} style="color:var(--accent)">
             #{r.build_id} {r.build_label ?? ""}
@@ -179,7 +179,7 @@ export function ReportDetail({ ctx, r }: { ctx: RequestContext; r: BattleReport 
         ? (
           <details style="margin-top:1rem;">
             <summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">
-              raw paste
+              {t("reportDetail.rawPaste")}
             </summary>
             <pre style="margin-top:.5rem">{r.raw}</pre>
           </details>

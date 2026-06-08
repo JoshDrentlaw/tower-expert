@@ -6,10 +6,9 @@
 import { renderToString } from "preact-render-to-string";
 import type { VNode } from "preact";
 
-export function renderPage(vnode: VNode, status = 200): Response {
+export function renderPage(vnode: VNode, status = 200, headers?: HeadersInit): Response {
   const body = "<!doctype html>" + renderToString(vnode);
-  return new Response(body, {
-    status,
-    headers: { "content-type": "text/html; charset=utf-8" },
-  });
+  const h = new Headers(headers);
+  h.set("content-type", "text/html; charset=utf-8");
+  return new Response(body, { status, headers: h });
 }

@@ -60,7 +60,7 @@ const STYLE = `
 export function Layout(
   { ctx, title, children }: { ctx: RequestContext; title: string; children: ComponentChildren },
 ) {
-  const { base } = ctx;
+  const { base, t } = ctx;
   return (
     <html lang={ctx.locale}>
       <head>
@@ -71,13 +71,13 @@ export function Layout(
       </head>
       <body>
         <header>
-          <h1>Tower // Builds</h1>
+          <h1>{t("app.title")}</h1>
           <nav>
-            <a href={`${base}/builds`}>builds</a>
-            <a href={`${base}/builds/new`}>new build</a>
-            <a href={`${base}/builds/new?from=latest`}>respec</a>
-            <a href={`${base}/reports`}>reports</a>
-            <a href={`${base}/reports/new`}>log run</a>
+            <a href={`${base}/builds`}>{t("nav.builds")}</a>
+            <a href={`${base}/builds/new`}>{t("nav.newBuild")}</a>
+            <a href={`${base}/builds/new?from=latest`}>{t("nav.respec")}</a>
+            <a href={`${base}/reports`}>{t("nav.reports")}</a>
+            <a href={`${base}/reports/new`}>{t("nav.logRun")}</a>
           </nav>
         </header>
         {children}
