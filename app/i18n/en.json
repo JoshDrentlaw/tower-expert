@@ -56,6 +56,8 @@
 
   "buildDetail.edit": "✎ edit this build",
   "buildDetail.respecFrom": "→ respec from this build",
+  "buildDetail.changedSr": "Changed:",
+  "buildDetail.changedLegend": "changed from build #{id}",
   "buildDetail.noStats": "This snapshot has no stored stats.",
   "buildDetail.rawData": "raw data",
   "buildDetail.notFound": "No build #{id}.",

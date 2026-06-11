@@ -225,6 +225,25 @@ export async function handleUpdate(
   return Response.redirect(new URL(`${ctx.base}/builds/${id}`, req.url), 303);
 }
 
+// Stat keys (`<cat>.<field>`) whose stored value differs between two builds.
+function diffKeys(
+  a: Record<string, Record<string, unknown>>,
+  b: Record<string, Record<string, unknown>>,
+): Set<string> {
+  const changed = new Set<string>();
+  const cats = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]);
+  for (const cat of cats) {
+    const av = a?.[cat] ?? {};
+    const bv = b?.[cat] ?? {};
+    for (const k of new Set([...Object.keys(av), ...Object.keys(bv)])) {
+      if (JSON.stringify(av[k] ?? null) !== JSON.stringify(bv[k] ?? null)) {
+        changed.add(`${cat}.${k}`);
+      }
+    }
+  }
+  return changed;
+}
+
 // GET {base}/builds/:id  — detail
 export async function handleDetail(ctx: RequestContext, id: number): Promise<Response> {
   const build = await getBuild(id);
@@ -237,10 +256,21 @@ export async function handleDetail(ctx: RequestContext, id: number): Promise<Res
       ctx.t("heading.notFound"),
     );
   }
+  // If this build is a respec, mark the stats that changed from its parent.
+  let changed: Set<string> | undefined;
+  if (build.parent_build_id) {
+    const parent = await getBuild(build.parent_build_id);
+    if (parent) changed = diffKeys(build.data, parent.data);
+  }
   return page(
     ctx,
     ctx.t("title.build", { id, label: build.label }),
-    <BuildDetail ctx={ctx} b={build} />,
+    <BuildDetail
+      ctx={ctx}
+      b={build}
+      changed={changed}
+      parentId={build.parent_build_id ?? undefined}
+    />,
     200,
     ctx.t("heading.build", { id, label: build.label }),
   );
