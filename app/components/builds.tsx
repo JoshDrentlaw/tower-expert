@@ -8,6 +8,7 @@ import type { NumUnit } from "../num_format.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import type { Formatter } from "../services/format.ts";
 import { Section } from "./fields.tsx";
+import { Onboard } from "./onboard.tsx";
 import { AUTOSAVE_JS } from "./draft_autosave.ts";
 import { HIGHLIGHT_JS } from "./changed_highlight.ts";
 
@@ -127,12 +128,12 @@ export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build
   const { base, t, fmt } = ctx;
   if (builds.length === 0) {
     return (
-      <p class="hint">
-        {t("buildsList.empty")}{" "}
-        <a href={`${base}/builds/new`} style="color:var(--accent-text)">
-          {t("buildsList.createOne")}
-        </a>
-      </p>
+      <Onboard
+        title={t("onboarding.buildsTitle")}
+        body={t("onboarding.buildsBody")}
+        primary={{ href: `${base}/builds/new`, label: t("onboarding.buildsCta") }}
+        secondary={{ href: `${base}/reports/new`, label: t("onboarding.buildsSecondary") }}
+      />
     );
   }
   return (

@@ -65,6 +65,15 @@ const STYLE = `
     padding: .55rem 1.1rem; font-family: var(--mono); font-weight: 600; cursor: pointer; }
   button:hover { filter: brightness(1.08); }
   .hint { color: var(--muted); font-size: .8rem; line-height: 1.45; }
+  .onboard { border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+    padding: 1.75rem 1.5rem; text-align: center; max-width: 34rem; margin: 1.5rem auto; }
+  .onboard h2 { margin: 0 0 .5rem; color: var(--ink); font-family: var(--body); font-size: 1.1rem; }
+  .onboard p { color: var(--muted); margin: 0 auto 1.25rem; max-width: 28rem; }
+  .onboard-cta { display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .onboard-secondary { color: var(--accent-text); text-decoration: none; }
+  .btn { display: inline-block; background: var(--accent); color: var(--on-accent); border-radius: 6px;
+    padding: .55rem 1.1rem; font-family: var(--mono); font-weight: 600; text-decoration: none; }
+  .btn:hover { filter: brightness(1.08); }
   .req { color: var(--accent-text); }
   table { width: 100%; border-collapse: collapse; font-size: .9rem; }
   th, td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid var(--line); }

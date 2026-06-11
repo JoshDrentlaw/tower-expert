@@ -106,6 +106,14 @@ Deno.test("BuildDetail marks changed stats and shows the diff legend (respec)", 
   assertStringIncludes(html, "●");
 });
 
+Deno.test("BuildsList empty state renders an onboarding card with CTAs", () => {
+  const html = renderToString(<BuildsList ctx={ctx} builds={[]} />);
+  assertStringIncludes(html, 'class="onboard"');
+  assertStringIncludes(html, "Track your Tower build");
+  assertStringIncludes(html, 'class="btn" href="/tower/builds/new"');
+  assertStringIncludes(html, 'href="/tower/reports/new"'); // secondary CTA
+});
+
 Deno.test("BuildsList is a responsive table with per-cell data-labels (mobile cards)", () => {
   const builds = [
     { id: 1, label: "A", note: "n", parent_build_id: null, data: {}, created_at: "2026-01-01" },
