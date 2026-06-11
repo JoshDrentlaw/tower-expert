@@ -38,6 +38,9 @@ const STYLE = `
   input:focus, select:focus, textarea:focus, button:focus, a:focus, summary:focus {
     outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent);
   }
+  input.changed, select.changed, textarea.changed {
+    border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent);
+  }
   .meta { display: grid; grid-template-columns: 1fr 2fr; gap: .75rem; margin-bottom: 1rem; }
   .actions { display: flex; gap: .75rem; align-items: center; margin-top: .5rem; }
   button { background: var(--accent); color: #1a1408; border: 0; border-radius: 6px;
