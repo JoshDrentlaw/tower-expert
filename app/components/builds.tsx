@@ -8,6 +8,25 @@ import type { NumUnit } from "../num_format.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import type { Formatter } from "../services/format.ts";
 import { Section } from "./fields.tsx";
+import { AUTOSAVE_JS } from "./draft_autosave.ts";
+
+// Inline client-side draft autosave for the build form (the app's only client
+// JS). Banner strings are passed via window.__draftI18n so they stay
+// translatable. JSON is `<`-escaped so a translation can't break out of <script>.
+function DraftAutosave({ ctx }: { ctx: RequestContext }) {
+  const { t } = ctx;
+  const i18n = JSON.stringify({
+    prompt: t("draft.prompt"),
+    restore: t("draft.restore"),
+    discard: t("draft.discard"),
+  }).replace(/</g, "\\u003c");
+  return (
+    <>
+      <script dangerouslySetInnerHTML={{ __html: `window.__draftI18n=${i18n};` }} />
+      <script dangerouslySetInnerHTML={{ __html: AUTOSAVE_JS }} />
+    </>
+  );
+}
 
 export interface BuildFormOpts {
   build?: Build;
@@ -55,44 +74,47 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
     );
 
   return (
-    <form method="post" action={action}>
-      {isEdit ? null : <input type="hidden" name="parent_build_id" value={String(parentId)} />}
-      {opts.error
-        ? <p id="form-error" class="hint" style="color:#e88" role="alert">{opts.error}</p>
-        : null}
-      {introNote}
-      <p class="hint">{t("buildForm.shorthandHint")}</p>
-      <div class="meta">
-        <div>
-          <label for="label">
-            {t("buildForm.label")} <span class="req" aria-hidden="true">*</span>
-          </label>
-          <input
-            id="label"
-            type="text"
-            name="label"
-            value={labelValue}
-            placeholder={t("buildForm.labelPlaceholder")}
-            required
-            aria-required="true"
-          />
+    <>
+      <form method="post" action={action}>
+        {isEdit ? null : <input type="hidden" name="parent_build_id" value={String(parentId)} />}
+        {opts.error
+          ? <p id="form-error" class="hint" style="color:#e88" role="alert">{opts.error}</p>
+          : null}
+        {introNote}
+        <p class="hint">{t("buildForm.shorthandHint")}</p>
+        <div class="meta">
+          <div>
+            <label for="label">
+              {t("buildForm.label")} <span class="req" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="label"
+              type="text"
+              name="label"
+              value={labelValue}
+              placeholder={t("buildForm.labelPlaceholder")}
+              required
+              aria-required="true"
+            />
+          </div>
+          <div>
+            <label for="note">{t("buildForm.note")}</label>
+            <input
+              id="note"
+              type="text"
+              name="note"
+              value={noteValue}
+              placeholder={t("buildForm.notePlaceholder")}
+            />
+          </div>
         </div>
-        <div>
-          <label for="note">{t("buildForm.note")}</label>
-          <input
-            id="note"
-            type="text"
-            name="note"
-            value={noteValue}
-            placeholder={t("buildForm.notePlaceholder")}
-          />
+        {STAT_SCHEMA.map((cat) => <Section ctx={ctx} cat={cat} data={data} invalid={invalid} />)}
+        <div class="actions sticky">
+          <button type="submit">{t(isEdit ? "buildForm.saveEdit" : "buildForm.save")}</button>
         </div>
-      </div>
-      {STAT_SCHEMA.map((cat) => <Section ctx={ctx} cat={cat} data={data} invalid={invalid} />)}
-      <div class="actions sticky">
-        <button type="submit">{t(isEdit ? "buildForm.saveEdit" : "buildForm.save")}</button>
-      </div>
-    </form>
+      </form>
+      <DraftAutosave ctx={ctx} />
+    </>
   );
 }
 

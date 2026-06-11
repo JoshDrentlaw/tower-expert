@@ -53,6 +53,15 @@ Deno.test("BuildForm: sections collapse by default, open when they hold data", (
   assertStringIncludes(withData, '<details class="section" open>');
 });
 
+Deno.test("BuildForm injects the draft-autosave script with translatable banner strings", () => {
+  const en = renderToString(<BuildForm ctx={ctx} opts={{}} />);
+  assertStringIncludes(en, "window.__draftI18n");
+  assertStringIncludes(en, "tower:draft:"); // the autosave script body
+  assertStringIncludes(en, '"restore":"Restore"');
+  const es = renderToString(<BuildForm ctx={ctxFor("es")} opts={{}} />);
+  assertStringIncludes(es, '"restore":"Restaurar"');
+});
+
 Deno.test("Layout: nav omits respec and marks the active section", () => {
   const html = renderToString(
     <Layout ctx={ctxFor("en", "/tower/builds")} title="t" heading="Builds">
