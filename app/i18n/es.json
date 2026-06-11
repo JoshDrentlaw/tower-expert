@@ -51,6 +51,15 @@
   "buildsList.thNote": "Nota",
   "buildsList.thSaved": "Guardado",
 
+  "onboarding.buildsTitle": "Rastrea tu build de Tower",
+  "onboarding.buildsBody": "Guarda snapshots versionados de tus stats y ve cómo evoluciona tu build con cada respec y subida de nivel.",
+  "onboarding.buildsCta": "Crea tu primer build",
+  "onboarding.buildsSecondary": "o registra un run",
+  "onboarding.reportsTitle": "Registra tus runs",
+  "onboarding.reportsBody": "Pega un reporte de batalla después de un run y Tower saca tu tier, oleada, monedas y tiempo automáticamente — sin escribir nada.",
+  "onboarding.reportsCta": "Registra tu primer run",
+  "onboarding.reportsSecondary": "o crea un build",
+
   "reportDetail.fullData": "Datos completos del reporte",
 
   "buildDetail.edit": "✎ editar este build",

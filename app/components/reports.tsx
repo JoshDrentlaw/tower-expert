@@ -4,6 +4,7 @@ import type { VNode } from "preact";
 import type { BattleReport, Build } from "../../db/db.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import type { TFunc } from "../i18n/index.ts";
+import { Onboard } from "./onboard.tsx";
 
 // The "date was inferred" marker: a visual (color + short text, hidden from
 // assistive tech) plus a screen-reader-only full explanation.
@@ -75,12 +76,12 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
   const { base, t, fmt } = ctx;
   if (reports.length === 0) {
     return (
-      <p class="hint">
-        {t("reportsList.empty")}{" "}
-        <a href={`${base}/reports/new`} style="color:var(--accent-text)">
-          {t("reportsList.logRun")}
-        </a>
-      </p>
+      <Onboard
+        title={t("onboarding.reportsTitle")}
+        body={t("onboarding.reportsBody")}
+        primary={{ href: `${base}/reports/new`, label: t("onboarding.reportsCta") }}
+        secondary={{ href: `${base}/builds/new`, label: t("onboarding.reportsSecondary") }}
+      />
     );
   }
   return (

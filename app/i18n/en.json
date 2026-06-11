@@ -54,6 +54,15 @@
   "buildsList.thNote": "Note",
   "buildsList.thSaved": "Saved",
 
+  "onboarding.buildsTitle": "Track your Tower build",
+  "onboarding.buildsBody": "Save versioned snapshots of your stats and watch your build evolve across respecs and level-ups.",
+  "onboarding.buildsCta": "Create your first build",
+  "onboarding.buildsSecondary": "or log a run",
+  "onboarding.reportsTitle": "Log your runs",
+  "onboarding.reportsBody": "Paste an after-run battle report and Tower pulls out your tier, wave, coins, and time automatically — no typing.",
+  "onboarding.reportsCta": "Log your first run",
+  "onboarding.reportsSecondary": "or create a build",
+
   "buildDetail.edit": "✎ edit this build",
   "buildDetail.respecFrom": "→ respec from this build",
   "buildDetail.changedSr": "Changed:",
