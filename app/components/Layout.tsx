@@ -70,6 +70,17 @@ const STYLE = `
   th, td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid var(--line); }
   th { font-family: var(--mono); font-size: .72rem; text-transform: uppercase; color: var(--muted); }
   td a { color: var(--accent-text); text-decoration: none; }
+  @media (max-width: 560px) {
+    table.responsive thead { display: none; }
+    table.responsive tbody, table.responsive tr, table.responsive td { display: block; }
+    table.responsive tr { border: 1px solid var(--line); border-radius: 8px;
+      padding: .3rem .75rem; margin-bottom: .75rem; background: var(--panel); }
+    table.responsive td { border: 0; padding: .35rem 0; display: flex;
+      justify-content: space-between; gap: 1rem; text-align: right; }
+    table.responsive td::before { content: attr(data-label); color: var(--muted);
+      font-family: var(--mono); font-size: .68rem; letter-spacing: .03em;
+      text-transform: uppercase; text-align: left; flex: none; }
+  }
   pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
     padding: 1rem; overflow: auto; font-family: var(--mono); font-size: .82rem; }
   .paired-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; align-items: start; }

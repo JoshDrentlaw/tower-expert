@@ -136,7 +136,7 @@ export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build
     );
   }
   return (
-    <table>
+    <table class="responsive">
       <caption class="sr-only">{t("buildsList.caption")}</caption>
       <thead>
         <tr>
@@ -149,12 +149,14 @@ export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build
       <tbody>
         {builds.map((b) => (
           <tr>
-            <td>
+            <td data-label={t("buildsList.thBuild")}>
               <a href={`${base}/builds/${b.id}`}>#{b.id} {b.label}</a>
             </td>
-            <td>{b.parent_build_id ? "#" + b.parent_build_id : "—"}</td>
-            <td class="hint">{b.note ?? ""}</td>
-            <td class="hint">{fmt.dateTime(b.created_at)}</td>
+            <td data-label={t("buildsList.thRespecOf")}>
+              {b.parent_build_id ? "#" + b.parent_build_id : "—"}
+            </td>
+            <td class="hint" data-label={t("buildsList.thNote")}>{b.note ?? ""}</td>
+            <td class="hint" data-label={t("buildsList.thSaved")}>{fmt.dateTime(b.created_at)}</td>
           </tr>
         ))}
       </tbody>
