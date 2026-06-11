@@ -71,7 +71,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
     : (
       <p class="hint">
         {t("buildForm.newSnapshotLead")}{" "}
-        <a href={`${base}/builds/new?from=latest`} style="color:var(--accent)">
+        <a href={`${base}/builds/new?from=latest`} style="color:var(--accent-text)">
           {t("buildForm.respec")}
         </a>.
       </p>
@@ -82,7 +82,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
       <form method="post" action={action} data-highlight-changes={highlight ? "1" : undefined}>
         {isEdit ? null : <input type="hidden" name="parent_build_id" value={String(parentId)} />}
         {opts.error
-          ? <p id="form-error" class="hint" style="color:#e88" role="alert">{opts.error}</p>
+          ? <p id="form-error" class="hint" style="color:var(--error)" role="alert">{opts.error}</p>
           : null}
         {introNote}
         <p class="hint">{t("buildForm.shorthandHint")}</p>
@@ -129,7 +129,9 @@ export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build
     return (
       <p class="hint">
         {t("buildsList.empty")}{" "}
-        <a href={`${base}/builds/new`} style="color:var(--accent)">{t("buildsList.createOne")}</a>
+        <a href={`${base}/builds/new`} style="color:var(--accent-text)">
+          {t("buildsList.createOne")}
+        </a>
       </p>
     );
   }
@@ -197,7 +199,9 @@ function DetailSection(
           {isChanged
             ? (
               <>
-                <span style="color:var(--accent);margin-right:.35rem" aria-hidden="true">●</span>
+                <span style="color:var(--accent-text);margin-right:.35rem" aria-hidden="true">
+                  ●
+                </span>
                 <span class="sr-only">{t("buildDetail.changedSr")}</span>
               </>
             )
@@ -271,17 +275,17 @@ export function BuildDetail(
   return (
     <>
       <p style="display:flex;gap:1.25rem;flex-wrap:wrap;font-family:var(--mono)">
-        <a href={`${base}/builds/${b.id}/edit`} style="color:var(--accent)">
+        <a href={`${base}/builds/${b.id}/edit`} style="color:var(--accent-text)">
           {t("buildDetail.edit")}
         </a>
-        <a href={`${base}/builds/new?from=${b.id}`} style="color:var(--accent)">
+        <a href={`${base}/builds/new?from=${b.id}`} style="color:var(--accent-text)">
           {t("buildDetail.respecFrom")}
         </a>
       </p>
       {changed && changed.size > 0 && parentId
         ? (
           <p class="hint">
-            <span style="color:var(--accent)" aria-hidden="true">●</span>{" "}
+            <span style="color:var(--accent-text)" aria-hidden="true">●</span>{" "}
             {t("buildDetail.changedLegend", { id: parentId })}
           </p>
         )
