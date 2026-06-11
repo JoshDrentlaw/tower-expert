@@ -52,10 +52,13 @@ const STYLE = `
   pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
     padding: 1rem; overflow: auto; font-family: var(--mono); font-size: .82rem; }
   .paired-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; align-items: start; }
-  .mod-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: .9rem; align-items: start; }
+  .mod-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    gap: .9rem 1.25rem; align-items: start; }
   .mod-col > div { margin-bottom: .5rem; }
   .mod-col .col-hdr { margin-bottom: .5rem; }
+  .substat-row { display: flex; gap: .4rem; align-items: center; }
+  .substat-row select { flex: 2.4; min-width: 0; }
+  .substat-row input { flex: 1; min-width: 0; }
   .col-hdr { font-family: var(--mono); font-size: .68rem; letter-spacing: .04em;
     text-transform: uppercase; color: var(--accent-dim);
     padding-bottom: .3rem; border-bottom: 1px solid var(--line); }

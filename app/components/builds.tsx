@@ -181,7 +181,33 @@ function DetailSection(
   const catData = (data[cat.key] as Record<string, unknown> | undefined) ?? {};
   const rows: VNode[] = [];
   const th = "width:200px;font-weight:normal;color:var(--muted)";
+  const skip = new Set<string>(); // substat `_val` keys folded into their `_type` row
   for (const f of cat.fields as SchemaField[]) {
+    if (skip.has(f.key)) continue;
+
+    // Module substat: render the picked type + its value as one row.
+    const subMatch = /_sub\d+_type$/.test(f.key);
+    if (subMatch) {
+      const valKey = f.key.replace(/_type$/, "_val");
+      skip.add(valKey);
+      const typeV = catData[f.key];
+      if (typeV !== undefined && typeV !== null && typeV !== "") {
+        const valV = catData[valKey];
+        const hasVal = valV !== undefined && valV !== null && valV !== "";
+        const value = hasVal ? `${typeV} ${valV}` : String(typeV);
+        const label = `${t(`mod.${f.group!.key}`, { default: f.group!.label })} — ${
+          t(`stat.${cat.key}.${f.key}`, { default: f.label })
+        }`;
+        rows.push(
+          <tr>
+            <th scope="row" style={th}>{label}</th>
+            <td style="font-family:var(--mono)">{value}</td>
+          </tr>,
+        );
+      }
+      continue;
+    }
+
     const v = displayValue(ctx.fmt, f, catData[f.key]);
     if (v !== null) {
       const base = t(`stat.${cat.key}.${f.key}`, { default: f.label });
