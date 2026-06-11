@@ -46,8 +46,10 @@ export function Field(
   const v = value ?? "";
 
   if (f.type === "select") {
+    // title shows the full selected value on hover (long substat options can
+    // otherwise be clipped by a narrow select).
     return (
-      <select id={name} name={name}>
+      <select id={name} name={name} title={v ? String(v) : undefined}>
         <option value="">—</option>
         {(f.options ?? []).map((o) => <option value={o} selected={o === v}>{o}</option>)}
       </select>
