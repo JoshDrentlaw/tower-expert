@@ -13,7 +13,7 @@ function DateInferred({ t, short }: { t: TFunc; short: boolean }) {
       <span
         aria-hidden="true"
         title={t("reportDetail.dateInferredTitle")}
-        style="color:#e88;font-size:.8rem;"
+        style="color:var(--error);font-size:.8rem;"
       >
         {" "}
         {short ? t("reportDetail.dateInferredShort") : t("reportDetail.dateInferred")}
@@ -35,7 +35,7 @@ export function ReportForm(
   return (
     <form method="post" action={`${base}/reports`}>
       {opts.error
-        ? <p id="form-error" class="hint" style="color:#e88" role="alert">{opts.error}</p>
+        ? <p id="form-error" class="hint" style="color:var(--error)" role="alert">{opts.error}</p>
         : null}
       <p class="hint">{t("reportForm.hint")}</p>
       <div class="meta">
@@ -77,7 +77,9 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
     return (
       <p class="hint">
         {t("reportsList.empty")}{" "}
-        <a href={`${base}/reports/new`} style="color:var(--accent)">{t("reportsList.logRun")}</a>
+        <a href={`${base}/reports/new`} style="color:var(--accent-text)">
+          {t("reportsList.logRun")}
+        </a>
       </p>
     );
   }
@@ -168,7 +170,7 @@ export function ReportDetail({ ctx, r }: { ctx: RequestContext; r: BattleReport 
       <tr>
         <th scope="row" style={th}>{t("reportDetail.build")}</th>
         <td>
-          <a href={`${base}/builds/${r.build_id}`} style="color:var(--accent)">
+          <a href={`${base}/builds/${r.build_id}`} style="color:var(--accent-text)">
             #{r.build_id} {r.build_label ?? ""}
           </a>
         </td>
