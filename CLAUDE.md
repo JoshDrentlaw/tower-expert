@@ -6,9 +6,10 @@ Guidance for Claude Code when working in this repository.
 
 **Tower — build tracker.** A small Deno + TypeScript web app that stores **versioned snapshots** of
 a player's build in the game _The Tower_, plus pasted battle reports. **Currently** server-rendered
-HTML with **minimal** client-side JS (just the build-form draft autosave,
-`app/components/draft_autosave.ts`) and no build step, deployed single-user on a homelab behind
-Caddy + Tailscale (no public ingress, no auth).
+HTML with **minimal** client-side JS — only the build-form helpers
+(`app/components/draft_autosave.ts` for localStorage drafts, `changed_highlight.ts` for live
+edit-highlighting) — and no build step, deployed single-user on a homelab behind Caddy + Tailscale
+(no public ingress, no auth).
 
 **Direction — read this before making tooling decisions.** The no-build-step / no-client-JS /
 single-user posture is the project's _current state_, **not a hard constraint**. That rule was

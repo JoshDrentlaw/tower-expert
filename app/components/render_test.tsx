@@ -56,6 +56,31 @@ Deno.test("BuildForm: sections collapse by default, open when they hold data", (
   assertStringIncludes(withData, '<details class="section" open>');
 });
 
+Deno.test("BuildForm enables change-highlighting only on a prefilled (edit/respec) form", () => {
+  const build = {
+    id: 7,
+    label: "x",
+    note: null,
+    parent_build_id: null,
+    data: {},
+    created_at: "",
+  } as unknown as Build;
+  assertStringIncludes(
+    renderToString(<BuildForm ctx={ctx} opts={{ build, editId: 7 }} />),
+    'data-highlight-changes="1"',
+  );
+  assertStringIncludes(
+    renderToString(<BuildForm ctx={ctx} opts={{ build, parentId: 7 }} />),
+    'data-highlight-changes="1"',
+  );
+  // (the script body references the attribute selector, so check the rendered
+  // attribute form specifically)
+  assert(
+    !renderToString(<BuildForm ctx={ctx} opts={{}} />).includes('data-highlight-changes="1"'),
+    "blank new build should not highlight",
+  );
+});
+
 Deno.test("BuildForm injects the draft-autosave script with translatable banner strings", () => {
   const en = renderToString(<BuildForm ctx={ctx} opts={{}} />);
   assertStringIncludes(en, "window.__draftI18n");

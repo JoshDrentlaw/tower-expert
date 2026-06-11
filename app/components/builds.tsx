@@ -9,6 +9,7 @@ import type { RequestContext } from "../services/ctx.ts";
 import type { Formatter } from "../services/format.ts";
 import { Section } from "./fields.tsx";
 import { AUTOSAVE_JS } from "./draft_autosave.ts";
+import { HIGHLIGHT_JS } from "./changed_highlight.ts";
 
 // Inline client-side draft autosave for the build form (the app's only client
 // JS). Banner strings are passed via window.__draftI18n so they stay
@@ -47,6 +48,9 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
   const { base, t } = ctx;
   const isEdit = opts.editId !== undefined;
   const action = isEdit ? `${base}/builds/${opts.editId}` : `${base}/builds`;
+  // Highlight edited fields only when the form is prefilled (edit / respec),
+  // not on a blank new build or a validation re-render.
+  const highlight = opts.build !== undefined && !opts.submittedData;
   const data: Record<string, Record<string, unknown>> = opts.submittedData ?? opts.build?.data ??
     {};
   const parentId = opts.parentId ?? "";
@@ -75,7 +79,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
 
   return (
     <>
-      <form method="post" action={action}>
+      <form method="post" action={action} data-highlight-changes={highlight ? "1" : undefined}>
         {isEdit ? null : <input type="hidden" name="parent_build_id" value={String(parentId)} />}
         {opts.error
           ? <p id="form-error" class="hint" style="color:#e88" role="alert">{opts.error}</p>
@@ -114,6 +118,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
         </div>
       </form>
       <DraftAutosave ctx={ctx} />
+      <script dangerouslySetInnerHTML={{ __html: HIGHLIGHT_JS }} />
     </>
   );
 }
