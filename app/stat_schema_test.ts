@@ -275,17 +275,37 @@ Deno.test("STAT_SCHEMA: every Modules field carries a group (column layout)", ()
   assertEquals([...groups].sort(), ["armor", "cannon", "core", "generator"]);
 });
 
-Deno.test("STAT_SCHEMA: each module has 6 free-text substat slots", () => {
+Deno.test("STAT_SCHEMA: each module has 6 structured substat slots (type select + value)", () => {
   const modules = STAT_SCHEMA.find((c) => c.key === "modules")!;
   for (const mod of ["cannon", "armor", "generator", "core"]) {
-    const subs = modules.fields.filter((f) => f.key.startsWith(`${mod}_sub`));
-    assertEquals(subs.length, 6, `module '${mod}' should have 6 substats, got ${subs.length}`);
+    const types = modules.fields.filter((f) => new RegExp(`^${mod}_sub\\d+_type$`).test(f.key));
+    const vals = modules.fields.filter((f) => new RegExp(`^${mod}_sub\\d+_val$`).test(f.key));
+    assertEquals(types.length, 6, `module '${mod}' should have 6 substat-type pickers`);
+    assertEquals(vals.length, 6, `module '${mod}' should have 6 substat-value fields`);
     assertEquals(
-      subs.every((f) => f.type === "text"),
+      types.every((f) => f.type === "select"),
       true,
-      `module '${mod}' substats must be text`,
+      `${mod} substat types must be selects`,
     );
+    assertEquals(
+      types.every((f) => (f.options ?? []).length > 0),
+      true,
+      `${mod} substat types need a pool`,
+    );
+    assertEquals(vals.every((f) => f.type === "text"), true, `${mod} substat values must be text`);
   }
+});
+
+Deno.test("STAT_SCHEMA: substat pools are module-type specific", () => {
+  const modules = STAT_SCHEMA.find((c) => c.key === "modules")!;
+  const pool = (mod: string) =>
+    modules.fields.find((f) => f.key === `${mod}_sub1_type`)!.options ?? [];
+  assertEquals(pool("cannon").includes("Crit Chance"), true);
+  assertEquals(pool("armor").includes("Lifesteal"), true);
+  assertEquals(pool("generator").includes("Interest / Wave"), true);
+  assertEquals(pool("core").includes("Golden Tower — Bonus"), true);
+  // Cannon's attack pool should not contain a defense effect.
+  assertEquals(pool("cannon").includes("Lifesteal"), false);
 });
 
 Deno.test("STAT_SCHEMA: module rarity options include the + merge tiers", () => {

@@ -104,6 +104,38 @@ function labelledField(
   );
 }
 
+// Render a module column's fields. A substat slot is a `_sub<n>_type` select
+// immediately followed by its `_sub<n>_val` text input — render them as one
+// paired row under a single "Substat N" label.
+function groupFieldRows(
+  ctx: RequestContext,
+  cat: Category,
+  fields: SchemaField[],
+  catData: Record<string, unknown>,
+  invalid?: Set<string>,
+) {
+  const out = [];
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i];
+    if (/_sub\d+_type$/.test(f.key) && fields[i + 1]) {
+      const val = fields[i + 1];
+      out.push(
+        <div>
+          <label for={`${cat.key}.${f.key}`}>{statLabel(ctx.t, cat.key, f.key, f.label)}</label>
+          <div class="substat-row">
+            <Field ctx={ctx} cat={cat} f={f} value={catData[f.key]} />
+            <Field ctx={ctx} cat={cat} f={val} value={catData[val.key]} />
+          </div>
+        </div>,
+      );
+      i++; // consumed the value field
+    } else {
+      out.push(labelledField(ctx, cat, f, catData, invalid));
+    }
+  }
+  return out;
+}
+
 function GroupedBody(
   { ctx, cat, catData, invalid }: {
     ctx: RequestContext;
@@ -130,7 +162,7 @@ function GroupedBody(
         return (
           <div class="mod-col">
             <div class="col-hdr">{t(`mod.${k}`, { default: g.label })}</div>
-            {g.fields.map((f) => labelledField(ctx, cat, f, catData, invalid))}
+            {groupFieldRows(ctx, cat, g.fields, catData, invalid)}
           </div>
         );
       })}

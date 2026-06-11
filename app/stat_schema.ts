@@ -67,23 +67,115 @@ const enh = (key: string, label: string): Enhancement => ({
   unit: "mult",
 });
 
-// One module's fields: Name, Rarity, Level, and six free-text substat slots
-// (unlocked in-game at module levels 41/101/141/161/201/241). All tagged with
-// the same `group` so the renderer gives each module its own column.
+// Sub-module effect pools per module type (sourced from the Fandom wiki's
+// "Sub-Module Effects" page). Cores roll a per-Ultimate-Weapon effect, flattened
+// here as "<UW> — <stat>". Edit these as the game's effect lists change.
+const CANNON_SUBS = [
+  "Attack Speed",
+  "Crit Chance",
+  "Crit Factor",
+  "Attack Range",
+  "Damage / Meter",
+  "Multishot Chance",
+  "Multishot Targets",
+  "Rapid Fire Chance",
+  "Rapid Fire Duration",
+  "Bounce Shot Chance",
+  "Bounce Shot Targets",
+  "Bounce Shot Range",
+  "Super Crit Chance",
+  "Super Crit Multi",
+  "Rend Armor Chance",
+  "Rend Armor Multi",
+  "Max Rend Armor Multi",
+];
+const ARMOR_SUBS = [
+  "Health Regen",
+  "Defense %",
+  "Defense Absolute",
+  "Thorn Damage",
+  "Lifesteal",
+  "Knockback Chance",
+  "Knockback Force",
+  "Orb Speed",
+  "Orbs",
+  "Shockwave Size",
+  "Shockwave Frequency",
+  "Land Mine Damage",
+  "Land Mine Chance",
+  "Land Mine Radius",
+  "Death Defy",
+  "Wall Health",
+  "Wall Rebuild",
+];
+const GENERATOR_SUBS = [
+  "Cash Bonus",
+  "Cash / Wave",
+  "Coins / Kill Bonus",
+  "Coins / Wave",
+  "Free Attack Upgrade",
+  "Free Defense Upgrade",
+  "Free Utility Upgrade",
+  "Interest / Wave",
+  "Recovery Amount",
+  "Max Recovery",
+  "Package Chance",
+  "Enemy Attack Level Skip",
+  "Enemy Health Level Skip",
+];
+const CORE_SUBS = [
+  "Golden Tower — Bonus",
+  "Golden Tower — Duration",
+  "Golden Tower — Cooldown",
+  "Black Hole — Size",
+  "Black Hole — Duration",
+  "Black Hole — Cooldown",
+  "Spotlight — Bonus",
+  "Spotlight — Angle",
+  "Chrono Field — Duration",
+  "Chrono Field — Speed Reduction",
+  "Chrono Field — Cooldown",
+  "Death Wave — Damage",
+  "Death Wave — Quantity",
+  "Death Wave — Cooldown",
+  "Smart Missiles — Damage",
+  "Smart Missiles — Quantity",
+  "Smart Missiles — Cooldown",
+  "Inner Land Mines — Damage",
+  "Inner Land Mines — Quantity",
+  "Inner Land Mines — Cooldown",
+  "Poison Swamp — Damage",
+  "Poison Swamp — Duration",
+  "Poison Swamp — Cooldown",
+  "Chain Lightning — Damage",
+  "Chain Lightning — Quantity",
+  "Chain Lightning — Chance",
+];
+
+// One module's fields: Name, Rarity, Level, then six substat slots — each a
+// type picker (from the module type's pool) + a free-text value. Slots unlock
+// in-game at module levels 41/101/141/161/201/241. All tagged with the same
+// `group` so the renderer gives each module its own column.
 const MODULE_SLOTS = 6;
-const modFields = (key: string, label: string): Field[] => {
+const modFields = (key: string, label: string, pool: string[]): Field[] => {
   const group = { key, label };
-  return [
+  const head: Field[] = [
     { key: `${key}_name`, label: "Name", type: "text", group },
     { key: `${key}_rarity`, label: "Rarity", type: "select", options: RARITY, group },
     { key: `${key}_level`, label: "Level", type: "int", group },
-    ...Array.from({ length: MODULE_SLOTS }, (_, i): Field => ({
-      key: `${key}_sub${i + 1}`,
-      label: `Substat ${i + 1}`,
-      type: "text",
-      group,
-    })),
   ];
+  const slots: Field[] = [];
+  for (let i = 1; i <= MODULE_SLOTS; i++) {
+    slots.push({
+      key: `${key}_sub${i}_type`,
+      label: `Substat ${i}`,
+      type: "select",
+      options: pool,
+      group,
+    });
+    slots.push({ key: `${key}_sub${i}_val`, label: `Substat ${i} value`, type: "text", group });
+  }
+  return [...head, ...slots];
 };
 
 export const STAT_SCHEMA: Category[] = [
@@ -351,10 +443,10 @@ export const STAT_SCHEMA: Category[] = [
     key: "modules",
     title: "Modules",
     fields: [
-      ...modFields("cannon", "Cannon"),
-      ...modFields("armor", "Armor"),
-      ...modFields("generator", "Generator"),
-      ...modFields("core", "Core"),
+      ...modFields("cannon", "Cannon", CANNON_SUBS),
+      ...modFields("armor", "Armor", ARMOR_SUBS),
+      ...modFields("generator", "Generator", GENERATOR_SUBS),
+      ...modFields("core", "Core", CORE_SUBS),
     ],
   },
 ];

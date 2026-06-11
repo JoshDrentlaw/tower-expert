@@ -22,7 +22,10 @@ Deno.test("BuildForm renders the schema: fields, all 9 UW sections, module colum
   assertStringIncludes(html, "UW — Golden Tower");
   assertStringIncludes(html, "UW — Chrono Field"); // the 9th, newly-added UW
   assertStringIncludes(html, 'class="mod-col"');
-  assertStringIncludes(html, 'name="modules.cannon_sub6"'); // 6th substat slot
+  assertStringIncludes(html, 'name="modules.cannon_sub6_type"'); // 6th substat picker
+  assertStringIncludes(html, 'name="modules.cannon_sub6_val"'); // its value field
+  assertStringIncludes(html, 'class="substat-row"');
+  assertStringIncludes(html, '<option value="Crit Chance">'); // cannon substat pool option
 });
 
 Deno.test("BuildForm echoes a submitted value back in the field's human format", () => {

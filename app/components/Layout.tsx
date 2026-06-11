@@ -56,6 +56,9 @@ const STYLE = `
     gap: .9rem; align-items: start; }
   .mod-col > div { margin-bottom: .5rem; }
   .mod-col .col-hdr { margin-bottom: .5rem; }
+  .substat-row { display: flex; gap: .4rem; align-items: center; }
+  .substat-row select { flex: 1.3; min-width: 0; }
+  .substat-row input { flex: 1; min-width: 0; }
   .col-hdr { font-family: var(--mono); font-size: .68rem; letter-spacing: .04em;
     text-transform: uppercase; color: var(--accent-dim);
     padding-bottom: .3rem; border-bottom: 1px solid var(--line); }
