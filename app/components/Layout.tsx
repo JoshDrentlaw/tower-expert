@@ -20,8 +20,8 @@ const STYLE = `
   h1 { font-family: var(--mono); font-size: 1.15rem; letter-spacing: .04em; margin: 0;
     color: var(--accent); text-transform: uppercase; }
   nav { display: flex; flex-wrap: wrap; }
-  nav a { color: var(--muted); text-decoration: none; font-family: var(--mono);
-    font-size: .8rem; margin-left: .75rem; display: inline-block; padding: .4rem .25rem; }
+  nav a { color: var(--muted); text-decoration: none; font-family: var(--body);
+    font-size: .85rem; margin-left: .75rem; display: inline-block; padding: .4rem .25rem; }
   nav a:hover { color: var(--ink); }
   nav a[aria-current="page"] { color: var(--ink); border-bottom: 2px solid var(--accent); }
   fieldset { border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
@@ -29,8 +29,8 @@ const STYLE = `
   legend { font-family: var(--mono); font-size: .78rem; letter-spacing: .05em;
     text-transform: uppercase; color: var(--accent); padding: 0 .4rem; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .75rem; }
-  label { display: block; font-size: .72rem; color: var(--muted); margin-bottom: .25rem;
-    font-family: var(--mono); }
+  label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .25rem;
+    font-family: var(--body); }
   input, select, textarea {
     width: 100%; background: #0b0e13; color: var(--ink); border: 1px solid var(--line);
     border-radius: 6px; padding: .45rem .55rem; font-family: var(--mono); font-size: .9rem;
@@ -46,7 +46,7 @@ const STYLE = `
   button { background: var(--accent); color: #1a1408; border: 0; border-radius: 6px;
     padding: .55rem 1.1rem; font-family: var(--mono); font-weight: 600; cursor: pointer; }
   button:hover { filter: brightness(1.08); }
-  .hint { color: var(--muted); font-size: .78rem; }
+  .hint { color: var(--muted); font-size: .8rem; line-height: 1.45; }
   .req { color: var(--accent); }
   table { width: 100%; border-collapse: collapse; font-size: .9rem; }
   th, td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid var(--line); }
