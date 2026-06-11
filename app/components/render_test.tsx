@@ -7,7 +7,7 @@ import { makeFormatter } from "../services/format.ts";
 import { makeT } from "../i18n/index.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import type { Build } from "../../db/db.ts";
-import { BuildForm } from "./builds.tsx";
+import { BuildDetail, BuildForm } from "./builds.tsx";
 import { Layout } from "./Layout.tsx";
 
 function ctxFor(locale: string, path = "/tower/builds/new"): RequestContext {
@@ -63,6 +63,22 @@ Deno.test("BuildForm injects the draft-autosave script with translatable banner 
   assertStringIncludes(en, '"restore":"Restore"');
   const es = renderToString(<BuildForm ctx={ctxFor("es")} opts={{}} />);
   assertStringIncludes(es, '"restore":"Restaurar"');
+});
+
+Deno.test("BuildDetail marks changed stats and shows the diff legend (respec)", () => {
+  const b = {
+    id: 2,
+    label: "Resp",
+    note: null,
+    parent_build_id: 1,
+    data: { workshop_attack: { damage: 2000000 } },
+    created_at: "",
+  } as unknown as Build;
+  const html = renderToString(
+    <BuildDetail ctx={ctx} b={b} changed={new Set(["workshop_attack.damage"])} parentId={1} />,
+  );
+  assertStringIncludes(html, "changed from build #1");
+  assertStringIncludes(html, "●");
 });
 
 Deno.test("Layout: nav omits respec and marks the active section", () => {

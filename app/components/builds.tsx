@@ -171,10 +171,11 @@ function displayValue(
 }
 
 function DetailSection(
-  { ctx, cat, data }: {
+  { ctx, cat, data, changed }: {
     ctx: RequestContext;
     cat: Category;
     data: Record<string, Record<string, unknown>>;
+    changed?: Set<string>;
   },
 ): VNode | null {
   const { t } = ctx;
@@ -182,6 +183,26 @@ function DetailSection(
   const rows: VNode[] = [];
   const th = "width:200px;font-weight:normal;color:var(--muted)";
   const skip = new Set<string>(); // substat `_val` keys folded into their `_type` row
+
+  // One detail row, with an accent dot when the value changed from the parent.
+  const row = (label: string, value: string, isChanged: boolean) =>
+    rows.push(
+      <tr>
+        <th scope="row" style={th}>
+          {isChanged
+            ? (
+              <>
+                <span style="color:var(--accent);margin-right:.35rem" aria-hidden="true">●</span>
+                <span class="sr-only">{t("buildDetail.changedSr")}</span>
+              </>
+            )
+            : null}
+          {label}
+        </th>
+        <td style="font-family:var(--mono)">{value}</td>
+      </tr>,
+    );
+
   for (const f of cat.fields as SchemaField[]) {
     if (skip.has(f.key)) continue;
 
@@ -198,12 +219,9 @@ function DetailSection(
         const label = `${t(`mod.${f.group!.key}`, { default: f.group!.label })} — ${
           t(`stat.${cat.key}.${f.key}`, { default: f.label })
         }`;
-        rows.push(
-          <tr>
-            <th scope="row" style={th}>{label}</th>
-            <td style="font-family:var(--mono)">{value}</td>
-          </tr>,
-        );
+        const isChanged = !!changed &&
+          (changed.has(`${cat.key}.${f.key}`) || changed.has(`${cat.key}.${valKey}`));
+        row(label, value, isChanged);
       }
       continue;
     }
@@ -214,23 +232,13 @@ function DetailSection(
       const label = f.group
         ? `${t(`mod.${f.group.key}`, { default: f.group.label })} — ${base}`
         : base;
-      rows.push(
-        <tr>
-          <th scope="row" style={th}>{label}</th>
-          <td style="font-family:var(--mono)">{v}</td>
-        </tr>,
-      );
+      row(label, v, !!changed && changed.has(`${cat.key}.${f.key}`));
     }
     if (f.enhancement) {
       const ev = displayValue(ctx.fmt, f.enhancement, catData[f.enhancement.key]);
       if (ev !== null) {
         const elabel = t(`stat.${cat.key}.${f.enhancement.key}`, { default: f.enhancement.label });
-        rows.push(
-          <tr>
-            <th scope="row" style={th}>{elabel}</th>
-            <td style="font-family:var(--mono)">{ev}</td>
-          </tr>,
-        );
+        row(elabel, ev, !!changed && changed.has(`${cat.key}.${f.enhancement.key}`));
       }
     }
   }
@@ -243,10 +251,17 @@ function DetailSection(
   );
 }
 
-export function BuildDetail({ ctx, b }: { ctx: RequestContext; b: Build }) {
+export function BuildDetail(
+  { ctx, b, changed, parentId }: {
+    ctx: RequestContext;
+    b: Build;
+    changed?: Set<string>;
+    parentId?: number;
+  },
+) {
   const { base, t } = ctx;
   const sections = STAT_SCHEMA
-    .map((cat) => <DetailSection ctx={ctx} cat={cat} data={b.data} />)
+    .map((cat) => <DetailSection ctx={ctx} cat={cat} data={b.data} changed={changed} />)
     .filter((s): s is VNode => s !== null);
   return (
     <>
@@ -258,6 +273,14 @@ export function BuildDetail({ ctx, b }: { ctx: RequestContext; b: Build }) {
           {t("buildDetail.respecFrom")}
         </a>
       </p>
+      {changed && changed.size > 0 && parentId
+        ? (
+          <p class="hint">
+            <span style="color:var(--accent)" aria-hidden="true">●</span>{" "}
+            {t("buildDetail.changedLegend", { id: parentId })}
+          </p>
+        )
+        : null}
       {sections.length ? sections : <p class="hint">{t("buildDetail.noStats")}</p>}
       <details style="margin-top:1rem;">
         <summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">
