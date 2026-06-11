@@ -84,7 +84,7 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
     );
   }
   return (
-    <table>
+    <table class="responsive">
       <caption class="sr-only">{t("reportsList.caption")}</caption>
       <thead>
         <tr>
@@ -100,18 +100,20 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
       <tbody>
         {reports.map((r) => (
           <tr>
-            <td>
+            <td data-label={t("reportsList.thNum")}>
               <a href={`${base}/reports/${r.id}`}>#{r.id}</a>
             </td>
-            <td class="hint">
+            <td class="hint" data-label={t("reportsList.thDate")}>
               {fmt.dateTime(r.occurred_at)}
               {r.date_inferred ? <DateInferred t={t} short /> : null}
             </td>
-            <td>{r.tier?.toString() ?? "—"}</td>
-            <td>{fmt.integer(r.wave)}</td>
-            <td>{fmt.num(r.coins)}</td>
-            <td class="hint">{fmt.duration(r.duration_s)}</td>
-            <td>
+            <td data-label={t("reportsList.thTier")}>{r.tier?.toString() ?? "—"}</td>
+            <td data-label={t("reportsList.thWave")}>{fmt.integer(r.wave)}</td>
+            <td data-label={t("reportsList.thCoins")}>{fmt.num(r.coins)}</td>
+            <td class="hint" data-label={t("reportsList.thDuration")}>
+              {fmt.duration(r.duration_s)}
+            </td>
+            <td data-label={t("reportsList.thBuild")}>
               {r.build_id
                 ? <a href={`${base}/builds/${r.build_id}`}>#{r.build_id} {r.build_label ?? ""}</a>
                 : "—"}

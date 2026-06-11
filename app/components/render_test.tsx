@@ -7,7 +7,7 @@ import { makeFormatter } from "../services/format.ts";
 import { makeT } from "../i18n/index.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import type { Build } from "../../db/db.ts";
-import { BuildDetail, BuildForm } from "./builds.tsx";
+import { BuildDetail, BuildForm, BuildsList } from "./builds.tsx";
 import { Layout } from "./Layout.tsx";
 
 function ctxFor(locale: string, path = "/tower/builds/new"): RequestContext {
@@ -104,6 +104,16 @@ Deno.test("BuildDetail marks changed stats and shows the diff legend (respec)", 
   );
   assertStringIncludes(html, "changed from build #1");
   assertStringIncludes(html, "●");
+});
+
+Deno.test("BuildsList is a responsive table with per-cell data-labels (mobile cards)", () => {
+  const builds = [
+    { id: 1, label: "A", note: "n", parent_build_id: null, data: {}, created_at: "2026-01-01" },
+  ] as unknown as Build[];
+  const html = renderToString(<BuildsList ctx={ctx} builds={builds} />);
+  assertStringIncludes(html, 'class="responsive"');
+  assertStringIncludes(html, 'data-label="Build"');
+  assertStringIncludes(html, 'data-label="Saved"');
 });
 
 Deno.test("Layout: nav omits respec and marks the active section", () => {
