@@ -42,6 +42,10 @@
   "buildForm.enhancement": "Enhancement ×",
   "buildForm.shorthandHint": "Enter values the way the game shows them — e.g. 869.03M, 56.4%, ×1.012, 14s. Suffix case matters: q (quadrillion) ≠ Q (quintillion).",
 
+  "draft.prompt": "You have an unsaved draft on this form.",
+  "draft.restore": "Restore",
+  "draft.discard": "Discard",
+
   "buildsList.empty": "No builds yet.",
   "buildsList.createOne": "Create one →",
   "buildsList.caption": "Saved builds",
