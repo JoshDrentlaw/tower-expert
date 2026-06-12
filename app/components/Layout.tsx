@@ -74,6 +74,7 @@ const STYLE = `
   .btn { display: inline-block; background: var(--accent); color: var(--on-accent); border-radius: 6px;
     padding: .55rem 1.1rem; font-family: var(--mono); font-weight: 600; text-decoration: none; }
   .btn:hover { filter: brightness(1.08); }
+  .list-actions { margin-bottom: 1rem; }
   .req { color: var(--accent-text); }
   table { width: 100%; border-collapse: collapse; font-size: .9rem; }
   th, td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid var(--line); }
@@ -134,11 +135,10 @@ export function Layout(
   },
 ) {
   const { base, t, path } = ctx;
-  // Active section (respec lives in-context now, not in the nav).
-  const newBuild = path === `${base}/builds/new`;
-  const logRun = path === `${base}/reports/new`;
-  const builds = path.startsWith(`${base}/builds`) && !newBuild;
-  const reports = path.startsWith(`${base}/reports`) && !logRun;
+  // Nav holds the two sections; the actions (new build / log run) live as
+  // primary buttons on those list pages, not in the nav.
+  const builds = path.startsWith(`${base}/builds`);
+  const runs = path.startsWith(`${base}/reports`);
   const cur = (on: boolean) => (on ? "page" : undefined);
   return (
     <html lang={ctx.locale}>
@@ -154,9 +154,7 @@ export function Layout(
           <h1>{t("app.title")}</h1>
           <nav aria-label={t("nav.ariaLabel")}>
             <a href={`${base}/builds`} aria-current={cur(builds)}>{t("nav.builds")}</a>
-            <a href={`${base}/builds/new`} aria-current={cur(newBuild)}>{t("nav.newBuild")}</a>
-            <a href={`${base}/reports`} aria-current={cur(reports)}>{t("nav.reports")}</a>
-            <a href={`${base}/reports/new`} aria-current={cur(logRun)}>{t("nav.logRun")}</a>
+            <a href={`${base}/reports`} aria-current={cur(runs)}>{t("nav.reports")}</a>
           </nav>
         </header>
         <main id="main-content">
