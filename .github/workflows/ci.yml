@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# Serialize runs per ref so two pushes can't deploy into the same dir concurrently.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -27,6 +32,9 @@ jobs:
       - name: Type check
         run: deno check main.ts
 
+      - name: Test
+        run: deno task test
+
   deploy:
     needs: check
     if: github.event_name == 'push'
@@ -35,6 +43,11 @@ jobs:
       - name: Pull latest and restart containers
         run: |
           cd /srv/games/tower-expert
-          git fetch
+          git fetch origin
+          # Stash any local work (recoverable via `git stash list`) so reset --hard
+          # can't silently destroy it; -u keeps the gitignored .env untouched.
+          git stash push -u -m "pre-deploy $(date -Iseconds)" || true
+          # Always deploy main, regardless of which branch the dir was left on.
+          git checkout -B main origin/main
           git reset --hard origin/main
           docker compose up --build -d
