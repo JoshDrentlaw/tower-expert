@@ -8,7 +8,7 @@ import { makeT, resolveLocale } from "./index.ts";
 // ---------------------------------------------------------------------------
 
 Deno.test("t: returns the locale's translation when present", () => {
-  assertEquals(makeT("es")("nav.reports"), "reportes");
+  assertEquals(makeT("es")("buildForm.save"), "Guardar snapshot");
 });
 
 Deno.test("t: falls back to English when the locale lacks the key", () => {

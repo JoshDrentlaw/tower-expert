@@ -137,31 +137,38 @@ export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build
     );
   }
   return (
-    <table class="responsive">
-      <caption class="sr-only">{t("buildsList.caption")}</caption>
-      <thead>
-        <tr>
-          <th scope="col">{t("buildsList.thBuild")}</th>
-          <th scope="col">{t("buildsList.thRespecOf")}</th>
-          <th scope="col">{t("buildsList.thNote")}</th>
-          <th scope="col">{t("buildsList.thSaved")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {builds.map((b) => (
+    <>
+      <div class="list-actions">
+        <a class="btn" href={`${base}/builds/new`}>{t("list.newBuild")}</a>
+      </div>
+      <table class="responsive">
+        <caption class="sr-only">{t("buildsList.caption")}</caption>
+        <thead>
           <tr>
-            <td data-label={t("buildsList.thBuild")}>
-              <a href={`${base}/builds/${b.id}`}>#{b.id} {b.label}</a>
-            </td>
-            <td data-label={t("buildsList.thRespecOf")}>
-              {b.parent_build_id ? "#" + b.parent_build_id : "—"}
-            </td>
-            <td class="hint" data-label={t("buildsList.thNote")}>{b.note ?? ""}</td>
-            <td class="hint" data-label={t("buildsList.thSaved")}>{fmt.dateTime(b.created_at)}</td>
+            <th scope="col">{t("buildsList.thBuild")}</th>
+            <th scope="col">{t("buildsList.thRespecOf")}</th>
+            <th scope="col">{t("buildsList.thNote")}</th>
+            <th scope="col">{t("buildsList.thSaved")}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {builds.map((b) => (
+            <tr>
+              <td data-label={t("buildsList.thBuild")}>
+                <a href={`${base}/builds/${b.id}`}>#{b.id} {b.label}</a>
+              </td>
+              <td data-label={t("buildsList.thRespecOf")}>
+                {b.parent_build_id ? "#" + b.parent_build_id : "—"}
+              </td>
+              <td class="hint" data-label={t("buildsList.thNote")}>{b.note ?? ""}</td>
+              <td class="hint" data-label={t("buildsList.thSaved")}>
+                {fmt.dateTime(b.created_at)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
