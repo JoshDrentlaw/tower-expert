@@ -154,11 +154,11 @@ Requires a `.env` with `DATABASE_URL`. `BASE_PATH` defaults to `/tower`.
 - **Accessibility baseline shipped** (Edna audit → fixes): WCAG-AA contrast, focus ring on all
   interactives, `<main>` + skip link, `<th scope>` + table captions,
   `aria-invalid`/`aria-describedby` on parse-failed fields, per-unit `inputmode`, sr-only page
-  headings. **Deferred (documented):** paired Workshop categories render as two stacked groups —
-  an Upgrade grid then an Enhance grid (mirroring the in-game Upgrade/Enhance tabs) — so tab order
-  reads all upgrades then all enhancements rather than interleaving paired rows. A meaningful-sequence
-  tradeoff (WCAG 1.3.2) kept on purpose; the two groups are now also visually distinct, not a sparse
-  two-column grid.
+  headings. **Deferred (documented):** paired Workshop categories render as two stacked groups — an
+  Upgrade grid then an Enhance grid (mirroring the in-game Upgrade/Enhance tabs) — so tab order
+  reads all upgrades then all enhancements rather than interleaving paired rows. A
+  meaningful-sequence tradeoff (WCAG 1.3.2) kept on purpose; the two groups are now also visually
+  distinct, not a sparse two-column grid.
 
 ## Subagents
 
