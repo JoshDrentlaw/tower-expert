@@ -152,23 +152,37 @@ const CORE_SUBS = [
   "Chain Lightning — Chance",
 ];
 
-// One module's fields: Name, Rarity, Level, then six substat slots — each a
-// type picker (from the module type's pool) + a free-text value. Slots unlock
-// in-game at module levels 41/101/141/161/201/241. All tagged with the same
-// `group` so the renderer gives each module its own column.
+// One module's fields: Name, Module Rarity, Level, Main Effect, then six substat
+// slots. Each slot mirrors the in-game card: its own rarity (the colored pill
+// that scales the roll), an effect picker (from the module type's pool), and a
+// free-text value. Slots unlock in-game at module levels 41/101/141/161/201/241.
+// All tagged with the same `group` so the renderer gives each module its own
+// column.
 const MODULE_SLOTS = 6;
 const modFields = (key: string, label: string, pool: string[]): Field[] => {
   const group = { key, label };
   const head: Field[] = [
     { key: `${key}_name`, label: "Name", type: "text", group },
-    { key: `${key}_rarity`, label: "Rarity", type: "select", options: RARITY, group },
+    { key: `${key}_rarity`, label: "Module Rarity", type: "select", options: RARITY, group },
     { key: `${key}_level`, label: "Level", type: "int", group },
+    // The module's signature effect, e.g. "×6.750 Tower Health" — its type is
+    // fixed per named module, so store the whole line as free text.
+    { key: `${key}_effect`, label: "Main Effect", type: "text", group },
   ];
   const slots: Field[] = [];
   for (let i = 1; i <= MODULE_SLOTS; i++) {
+    // The slot's leading field is the rarity pill; the renderer pairs it with
+    // the following effect + value into one labelled "Substat N" row.
+    slots.push({
+      key: `${key}_sub${i}_rarity`,
+      label: `Substat ${i}`,
+      type: "select",
+      options: RARITY,
+      group,
+    });
     slots.push({
       key: `${key}_sub${i}_type`,
-      label: `Substat ${i}`,
+      label: `Substat ${i} effect`,
       type: "select",
       options: pool,
       group,

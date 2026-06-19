@@ -24,8 +24,45 @@ Deno.test("BuildForm renders the schema: fields, all 9 UW sections, module colum
   assertStringIncludes(html, 'class="mod-col"');
   assertStringIncludes(html, 'name="modules.cannon_sub6_type"'); // 6th substat picker
   assertStringIncludes(html, 'name="modules.cannon_sub6_val"'); // its value field
+  assertStringIncludes(html, 'name="modules.cannon_sub1_rarity"'); // per-substat rarity pill
+  assertStringIncludes(html, 'name="modules.cannon_effect"'); // module Main Effect
   assertStringIncludes(html, 'class="substat-row"');
   assertStringIncludes(html, '<option value="Crit Chance">'); // cannon substat pool option
+});
+
+Deno.test("BuildForm: paired categories split into Upgrade + Enhance groups, no sparse grid", () => {
+  const html = renderToString(<BuildForm ctx={ctx} opts={{}} />);
+  assert(!html.includes('class="paired-grid"'), "the sparse paired grid is gone");
+  assertStringIncludes(html, 'class="sub-hdr">Upgrade</div>');
+  assertStringIncludes(html, 'class="sub-hdr enh">Enhance</div>');
+  // Enhancement inputs still render, now under the Enhance group.
+  assertStringIncludes(html, 'name="workshop_attack.damage_enh"');
+});
+
+Deno.test("BuildForm: substat controls carry aria-labels (rarity / effect / value)", () => {
+  const html = renderToString(<BuildForm ctx={ctx} opts={{}} />);
+  assertStringIncludes(html, 'aria-label="Substat 1 rarity"');
+  assertStringIncludes(html, 'aria-label="Substat 1 effect"');
+  assertStringIncludes(html, 'aria-label="Substat 1 value"');
+});
+
+Deno.test("BuildDetail folds a module substat into one rarity + effect + value row", () => {
+  const b = {
+    id: 9,
+    label: "Mods",
+    note: null,
+    parent_build_id: null,
+    data: {
+      modules: {
+        cannon_sub1_rarity: "Mythic",
+        cannon_sub1_type: "Crit Chance",
+        cannon_sub1_val: "+6%",
+      },
+    },
+    created_at: "",
+  } as unknown as Build;
+  const html = renderToString(<BuildDetail ctx={ctx} b={b} />);
+  assertStringIncludes(html, "Mythic Crit Chance +6%");
 });
 
 Deno.test("BuildForm echoes a submitted value back in the field's human format", () => {

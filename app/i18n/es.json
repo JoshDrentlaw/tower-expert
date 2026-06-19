@@ -39,7 +39,7 @@
   "buildForm.respec": "respec",
   "buildForm.cloned": "Clonado del build #{id} — cambia solo lo que se movió, luego guarda como un nuevo snapshot. Los campos sin tocar se mantienen.",
   "buildForm.upgrade": "Mejora",
-  "buildForm.enhancement": "Realce ×",
+  "buildForm.enhancement": "Realce",
   "buildForm.shorthandHint": "Ingresa los valores como los muestra el juego — p. ej. 869.03M, 56.4%, ×1.012, 14s. Importa la mayúscula del sufijo: q (mil billones) ≠ Q (trillón).",
 
   "draft.prompt": "Tienes un borrador sin guardar en este formulario.",
