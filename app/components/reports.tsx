@@ -4,6 +4,8 @@ import type { VNode } from "preact";
 import type { BattleReport, Build } from "../../db/db.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import type { TFunc } from "../i18n/index.ts";
+import { buildChart, type Sample } from "../progression.ts";
+import type { NumUnit } from "../num_format.ts";
 import { Onboard } from "./onboard.tsx";
 
 // The "date was inferred" marker: a visual (color + short text, hidden from
@@ -88,6 +90,7 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
     <>
       <div class="list-actions">
         <a class="btn" href={`${base}/reports/new`}>{t("list.logRun")}</a>
+        <a class="btn" href={`${base}/reports/progression`}>{t("progression.view")}</a>
       </div>
       <table class="responsive">
         <caption class="sr-only">{t("reportsList.caption")}</caption>
@@ -127,6 +130,162 @@ export function ReportsList({ ctx, reports }: { ctx: RequestContext; reports: Ba
           ))}
         </tbody>
       </table>
+    </>
+  );
+}
+
+// A single static-SVG progression chart: one metric (e.g. wave) plotted against
+// time, with a dashed vertical marker wherever the active build changed from the
+// previous run — so a reallocation lines up visually with the trend that follows.
+// Pure geometry comes from progression.ts; this only renders it.
+function ProgressionChart(
+  { ctx, title, samples, unit }: {
+    ctx: RequestContext;
+    title: string;
+    samples: Sample[];
+    unit: NumUnit;
+  },
+) {
+  const { t, fmt } = ctx;
+  const fmtVal = (v: number) => fmt.num(v, unit);
+  const c = buildChart(samples, { w: 640, h: 170, pad: 30 });
+
+  if (c.plotted.length === 0) {
+    return (
+      <figure class="chart">
+        <figcaption>{title}</figcaption>
+        <p class="hint">{t("progression.noData")}</p>
+      </figure>
+    );
+  }
+
+  const changes = c.plotted.filter((p) => p.buildChanged);
+  const last = c.plotted[c.plotted.length - 1];
+  const summary = t("progression.summary", {
+    metric: title,
+    n: c.plotted.length,
+    from: fmtVal(c.plotted[0].value),
+    to: fmtVal(last.value),
+  });
+
+  return (
+    <figure class="chart">
+      <figcaption>{title}</figcaption>
+      <svg
+        viewBox={`0 0 ${c.w} ${c.h}`}
+        role="img"
+        aria-label={summary}
+        preserveAspectRatio="none"
+        style="width:100%;height:auto;"
+      >
+        {/* plot frame */}
+        <line x1={c.pad} y1={c.pad} x2={c.pad} y2={c.h - c.pad} stroke="var(--line)" />
+        <line
+          x1={c.pad}
+          y1={c.h - c.pad}
+          x2={c.w - c.pad}
+          y2={c.h - c.pad}
+          stroke="var(--line)"
+        />
+        {/* build-change markers */}
+        {changes.map((p) => (
+          <line
+            x1={p.cx}
+            y1={c.pad}
+            x2={p.cx}
+            y2={c.h - c.pad}
+            stroke="var(--muted)"
+            stroke-dasharray="3 3"
+          />
+        ))}
+        {/* the metric line + points */}
+        <polyline points={c.polyline} fill="none" stroke="var(--accent-text)" stroke-width="2" />
+        {c.plotted.map((p) => (
+          <circle
+            cx={p.cx}
+            cy={p.cy}
+            r={p.buildChanged ? 4.5 : 2.5}
+            fill={p.buildChanged ? "var(--accent-text)" : "var(--bg)"}
+            stroke="var(--accent-text)"
+          />
+        ))}
+        {/* value-axis bounds */}
+        <text x={c.pad - 4} y={c.pad + 4} text-anchor="end" font-size="10" fill="var(--muted)">
+          {fmtVal(c.vMax)}
+        </text>
+        <text x={c.pad - 4} y={c.h - c.pad} text-anchor="end" font-size="10" fill="var(--muted)">
+          {fmtVal(c.vMin)}
+        </text>
+        {/* time-axis bounds */}
+        <text x={c.pad} y={c.h - c.pad + 14} text-anchor="start" font-size="10" fill="var(--muted)">
+          {fmt.dateTime(new Date(c.tMin).toISOString())}
+        </text>
+        <text
+          x={c.w - c.pad}
+          y={c.h - c.pad + 14}
+          text-anchor="end"
+          font-size="10"
+          fill="var(--muted)"
+        >
+          {fmt.dateTime(new Date(c.tMax).toISOString())}
+        </text>
+      </svg>
+      <p class="hint">
+        {summary}
+        {changes.length > 0 ? " " + t("progression.markerNote", { n: changes.length }) : ""}
+      </p>
+    </figure>
+  );
+}
+
+export function ReportsProgression(
+  { ctx, reports }: { ctx: RequestContext; reports: BattleReport[] },
+) {
+  const { base, t } = ctx;
+  // Reports arrive newest-first; the chart sorts ascending itself.
+  const toSamples = (pick: (r: BattleReport) => number | null): Sample[] =>
+    reports
+      .map((r) => ({
+        id: r.id,
+        t: new Date(r.occurred_at).getTime(),
+        value: pick(r),
+        buildId: r.build_id,
+      }))
+      .filter((s): s is Sample => s.value !== null && Number.isFinite(s.value));
+
+  const waveSamples = toSamples((r) => r.wave);
+  const coinSamples = toSamples((r) => r.coins);
+
+  if (waveSamples.length === 0 && coinSamples.length === 0) {
+    return (
+      <Onboard
+        title={t("onboarding.reportsTitle")}
+        body={t("progression.empty")}
+        primary={{ href: `${base}/reports/new`, label: t("onboarding.reportsCta") }}
+        secondary={{ href: `${base}/reports`, label: t("progression.backToList") }}
+      />
+    );
+  }
+
+  return (
+    <>
+      <div class="list-actions">
+        <a class="btn" href={`${base}/reports`}>{t("progression.backToList")}</a>
+        <a class="btn" href={`${base}/reports/new`}>{t("list.logRun")}</a>
+      </div>
+      <p class="hint">{t("progression.lead")}</p>
+      <ProgressionChart
+        ctx={ctx}
+        title={t("reportsList.thWave")}
+        samples={waveSamples}
+        unit="num"
+      />
+      <ProgressionChart
+        ctx={ctx}
+        title={t("reportsList.thCoins")}
+        samples={coinSamples}
+        unit="num"
+      />
     </>
   );
 }

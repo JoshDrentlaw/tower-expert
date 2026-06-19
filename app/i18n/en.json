@@ -21,6 +21,7 @@
   "title.build": "Tower // #{id} {label}",
   "title.editBuild": "Tower // Edit Build #{id}",
   "title.report": "Tower // Run #{id}",
+  "title.progression": "Tower // Run Progression",
 
   "heading.builds": "Builds",
   "heading.newBuild": "New Build",
@@ -30,6 +31,15 @@
   "heading.build": "Build #{id} {label}",
   "heading.editBuild": "Edit Build #{id}",
   "heading.report": "Run #{id}",
+  "heading.progression": "Run Progression",
+
+  "progression.view": "Progression",
+  "progression.backToList": "All runs",
+  "progression.lead": "Each run plotted over time. A dashed line marks where your active build changed from the previous run — so you can see whether a reallocation moved the trend.",
+  "progression.summary": "{metric} across {n} runs, {from} → {to}.",
+  "progression.markerNote": "{n} build change(s) marked.",
+  "progression.noData": "No runs with this metric yet.",
+  "progression.empty": "Log a few runs (and tie each to its build) to see how your progression trends over time.",
 
   "buildForm.label": "Label",
   "buildForm.note": "Note",
