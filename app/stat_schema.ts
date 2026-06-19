@@ -409,12 +409,9 @@ export const STAT_SCHEMA: Category[] = [
     key: "uw_death_wave",
     title: "UW — Death Wave",
     fields: [
-      { key: "damage_amp", label: "Damage Amp", type: "number", unit: "mult" },
+      { key: "damage", label: "Damage", type: "number", unit: "mult" },
       { key: "quantity", label: "Quantity", type: "int" },
       { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
-      { key: "health_bonus", label: "Health Bonus", type: "number", unit: "pct" },
-      { key: "coin_bonus", label: "Coin Bonus", type: "number", unit: "mult" },
-      { key: "cell_bonus", label: "Cell Bonus", type: "number", unit: "mult" },
     ],
   },
   {
@@ -450,11 +447,7 @@ export const STAT_SCHEMA: Category[] = [
     fields: [
       { key: "damage", label: "Damage", type: "number", unit: "mult" },
       { key: "quantity", label: "Quantity", type: "int" },
-      { key: "recharge", label: "Recharge", type: "number", unit: "sec" },
-      { key: "despawn", label: "Despawn Time", type: "number", unit: "sec" },
-      { key: "radius", label: "Radius", type: "int" },
-      { key: "explosions", label: "Explosions", type: "int" },
-      { key: "barrage", label: "Barrage", type: "int" },
+      { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
     ],
   },
   {
@@ -463,32 +456,28 @@ export const STAT_SCHEMA: Category[] = [
     fields: [
       { key: "damage", label: "Damage", type: "number", unit: "mult" },
       { key: "duration", label: "Duration", type: "number", unit: "sec" },
-      { key: "radius", label: "Radius", type: "int" },
-      { key: "stun_chance", label: "Stun Chance", type: "number", unit: "pct" },
-      { key: "stun_time", label: "Stun Time", type: "number", unit: "sec" },
-      { key: "rend", label: "Rend", type: "number", unit: "mult" },
+      { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
     ],
   },
   {
     key: "uw_inner_land_mines",
     title: "UW — Inner Land Mines",
+    // Sub-stats per the Fandom wiki (Inner Land Mines/Basic Upgrades): Damage is
+    // a × multiplier (10× → 3021×), Quantity a count, Cooldown in seconds.
     fields: [
-      { key: "damage", label: "Damage", type: "number", unit: "pct" },
-      { key: "mine_count", label: "Mine Count", type: "int" },
-      { key: "blast_radius", label: "Blast Radius", type: "int" },
-      { key: "rotation_speed", label: "Rotation Speed", type: "int" },
-      { key: "stun", label: "Stun", type: "int" },
+      { key: "damage", label: "Damage", type: "number", unit: "mult" },
+      { key: "quantity", label: "Quantity", type: "int" },
       { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
     ],
   },
   {
     key: "uw_chrono_field",
     title: "UW — Chrono Field",
+    // Sub-stats per the Fandom wiki (Chrono Field/Basic Upgrades): Duration (s),
+    // Speed Reduction / "Slow" (%), Cooldown (s).
     fields: [
-      { key: "speed_reduction", label: "Speed Reduction", type: "number", unit: "pct" },
-      { key: "damage_reduction", label: "Damage Reduction", type: "number", unit: "pct" },
-      { key: "range", label: "Range", type: "int" },
       { key: "duration", label: "Duration", type: "number", unit: "sec" },
+      { key: "speed_reduction", label: "Speed Reduction", type: "number", unit: "pct" },
       { key: "cooldown", label: "Cooldown", type: "number", unit: "sec" },
     ],
   },

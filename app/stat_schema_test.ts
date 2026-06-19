@@ -264,6 +264,34 @@ Deno.test("STAT_SCHEMA: all 9 Ultimate Weapons are present as their own categori
   }
 });
 
+Deno.test("STAT_SCHEMA: each UW tracks exactly its 3 in-game upgrade sub-stats", () => {
+  // The in-game Upgrade screen shows 3 sub-stats per weapon (verified against
+  // screenshots for the 7 owned weapons + the Fandom wiki for Inner Land Mines
+  // and Chrono Field). Enhancement effects are NOT upgrade sub-stats and must
+  // not creep back in here.
+  const expected: Record<string, string[]> = {
+    uw_golden_tower: ["bonus", "duration", "cooldown"],
+    uw_death_wave: ["damage", "quantity", "cooldown"],
+    uw_black_hole: ["size", "duration", "cooldown"],
+    uw_spotlight: ["bonus", "angle", "quantity"],
+    uw_chain_lightning: ["damage", "quantity", "chance"],
+    uw_smart_missiles: ["damage", "quantity", "cooldown"],
+    uw_poison_swamp: ["damage", "duration", "cooldown"],
+    uw_inner_land_mines: ["damage", "quantity", "cooldown"],
+    uw_chrono_field: ["duration", "speed_reduction", "cooldown"],
+  };
+  for (const [key, keys] of Object.entries(expected)) {
+    const cat = STAT_SCHEMA.find((c) => c.key === key)!;
+    assertEquals(cat.fields.map((f) => f.key), keys, `${key} sub-stats`);
+    // UW sub-stats are plain values — no paired enhancements on this surface.
+    assertEquals(
+      cat.fields.some((f) => f.enhancement),
+      false,
+      `${key} should have no enhancements`,
+    );
+  }
+});
+
 Deno.test("STAT_SCHEMA: every Modules field carries a group (column layout)", () => {
   const modules = STAT_SCHEMA.find((c) => c.key === "modules")!;
   const groups = new Set(modules.fields.map((f) => f.group?.key));
