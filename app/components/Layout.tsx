@@ -47,6 +47,10 @@ const STYLE = `
   legend { font-family: var(--mono); font-size: .78rem; letter-spacing: .05em;
     text-transform: uppercase; color: var(--accent-text); padding: 0 .4rem; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .75rem; }
+  .chart { margin: 0 0 1.5rem; }
+  .chart figcaption { font-family: var(--mono); font-size: .78rem; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--accent-text); margin-bottom: .4rem; }
+  .chart svg { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
   label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .25rem;
     font-family: var(--body); }
   input, select, textarea {

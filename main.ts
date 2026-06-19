@@ -16,6 +16,7 @@ import {
   handleReportDetail,
   handleReportList,
   handleReportNew,
+  handleReportProgression,
   handleReportSave,
 } from "./app/routes/reports.tsx";
 import { makeContext } from "./app/services/ctx.ts";
@@ -62,6 +63,9 @@ Deno.serve({ port: PORT }, async (req) => {
 
     // Report routes
     if (req.method === "GET" && pathname === `${BASE}/reports`) return await handleReportList(ctx);
+    if (req.method === "GET" && pathname === `${BASE}/reports/progression`) {
+      return await handleReportProgression(ctx);
+    }
     if (req.method === "GET" && pathname === `${BASE}/reports/new`) {
       return await handleReportNew(ctx);
     }

@@ -19,6 +19,7 @@
   "title.logRun": "Tower // Registrar Run",
   "title.notFound": "No encontrado",
   "title.editBuild": "Tower // Editar Build #{id}",
+  "title.progression": "Tower // Progreso de Runs",
 
   "heading.builds": "Builds",
   "heading.newBuild": "Nuevo Build",
@@ -28,6 +29,15 @@
   "heading.build": "Build #{id} {label}",
   "heading.editBuild": "Editar Build #{id}",
   "heading.report": "Run #{id}",
+  "heading.progression": "Progreso de Runs",
+
+  "progression.view": "Progreso",
+  "progression.backToList": "Todas las runs",
+  "progression.lead": "Cada run graficada en el tiempo. La línea punteada marca dónde cambió tu build activo respecto a la run anterior — así ves si reasignar movió la tendencia.",
+  "progression.summary": "{metric} en {n} runs, {from} → {to}.",
+  "progression.markerNote": "{n} cambio(s) de build marcados.",
+  "progression.noData": "Todavía no hay runs con este dato.",
+  "progression.empty": "Registra unas runs (y liga cada una a su build) para ver cómo progresan con el tiempo.",
 
   "buildForm.label": "Etiqueta",
   "buildForm.note": "Nota",

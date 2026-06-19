@@ -6,7 +6,12 @@ import { parseReport } from "../report_parser.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import { renderPage } from "../services/render.tsx";
 import { Layout } from "../components/Layout.tsx";
-import { ReportDetail, ReportForm, ReportsList } from "../components/reports.tsx";
+import {
+  ReportDetail,
+  ReportForm,
+  ReportsList,
+  ReportsProgression,
+} from "../components/reports.tsx";
 
 // Hard limit on pasted battle report text. Game reports are ~2–4 KB in practice;
 // 256 KB gives enormous headroom while blocking memory/DB abuse.
@@ -32,6 +37,17 @@ export async function handleReportList(ctx: RequestContext): Promise<Response> {
     <ReportsList ctx={ctx} reports={reports} />,
     200,
     ctx.t("heading.reports"),
+  );
+}
+
+export async function handleReportProgression(ctx: RequestContext): Promise<Response> {
+  const reports = await listReports();
+  return page(
+    ctx,
+    ctx.t("title.progression"),
+    <ReportsProgression ctx={ctx} reports={reports} />,
+    200,
+    ctx.t("heading.progression"),
   );
 }
 
