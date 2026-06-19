@@ -3,10 +3,9 @@
 # `deno test`, `deno fmt`, `deno lint`, and `deno check` work in remote sessions.
 #
 # Why this is needed: the remote container ships without Deno, and deno.land /
-# dl.deno.land / jsr.io are blocked by the environment network policy. Deno's
-# release binaries are hosted on GitHub (allowed), so we fetch from there. The
-# @std/assert test dependency is vendored in vendor/std_assert (jsr.io is
-# blocked), so no JSR access is required at test time.
+# dl.deno.land are not relied on here. Deno's release binaries are hosted on
+# GitHub (allowed), so we fetch from there. Test/runtime deps (npm + jsr:@std/
+# assert) resolve over the network, which the environment's allowlist permits.
 #
 # Idempotent and non-interactive. Local/homelab dev already has Deno, so this
 # only runs in the remote env (CLAUDE_CODE_REMOTE=true).
@@ -51,8 +50,7 @@ fi
 
 echo "session-start: $(deno --version | head -1)" >&2
 
-# Warm the module cache (npm deps from registry.npmjs.org; @std/assert is
-# vendored locally). Container state is cached after the hook, so the first
-# test/format run in the session starts fast. Never fail the session on a
-# transient cache miss.
+# Warm the module cache (npm deps from registry.npmjs.org, jsr:@std/assert from
+# jsr.io). Container state is cached after the hook, so the first test/format run
+# in the session starts fast. Never fail the session on a transient cache miss.
 deno cache "$CLAUDE_PROJECT_DIR/main.ts" >&2 2>&1 || true
