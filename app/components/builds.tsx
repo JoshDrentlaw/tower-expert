@@ -199,7 +199,7 @@ function DetailSection(
   const catData = (data[cat.key] as Record<string, unknown> | undefined) ?? {};
   const rows: VNode[] = [];
   const th = "width:200px;font-weight:normal;color:var(--muted)";
-  const skip = new Set<string>(); // substat `_val` keys folded into their `_type` row
+  const skip = new Set<string>(); // substat `_type`/`_val` keys folded into their `_rarity` row
 
   // One detail row, with an accent dot when the value changed from the parent.
   const row = (label: string, value: string, isChanged: boolean) =>
@@ -225,21 +225,26 @@ function DetailSection(
   for (const f of cat.fields as SchemaField[]) {
     if (skip.has(f.key)) continue;
 
-    // Module substat: render the picked type + its value as one row.
-    const subMatch = /_sub\d+_type$/.test(f.key);
+    // Module substat: fold rarity + effect + value into one row, e.g.
+    // "Mythic Defense % +6%". Anchored on the leading `_rarity` field.
+    const subMatch = /_sub\d+_rarity$/.test(f.key);
     if (subMatch) {
-      const valKey = f.key.replace(/_type$/, "_val");
+      const typeKey = f.key.replace(/_rarity$/, "_type");
+      const valKey = f.key.replace(/_rarity$/, "_val");
+      skip.add(typeKey);
       skip.add(valKey);
-      const typeV = catData[f.key];
-      if (typeV !== undefined && typeV !== null && typeV !== "") {
-        const valV = catData[valKey];
-        const hasVal = valV !== undefined && valV !== null && valV !== "";
-        const value = hasVal ? `${typeV} ${valV}` : String(typeV);
+      const present = (v: unknown) => v !== undefined && v !== null && v !== "";
+      const rarityV = catData[f.key];
+      const typeV = catData[typeKey];
+      const valV = catData[valKey];
+      if (present(rarityV) || present(typeV) || present(valV)) {
+        const value = [rarityV, typeV, valV].filter(present).join(" ");
         const label = `${t(`mod.${f.group!.key}`, { default: f.group!.label })} — ${
           t(`stat.${cat.key}.${f.key}`, { default: f.label })
         }`;
         const isChanged = !!changed &&
-          (changed.has(`${cat.key}.${f.key}`) || changed.has(`${cat.key}.${valKey}`));
+          (changed.has(`${cat.key}.${f.key}`) || changed.has(`${cat.key}.${typeKey}`) ||
+            changed.has(`${cat.key}.${valKey}`));
         row(label, value, isChanged);
       }
       continue;

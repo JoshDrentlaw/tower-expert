@@ -34,12 +34,15 @@ const statLabel = (t: TFunc, catKey: string, key: string, label: string) =>
 const hasValue = (v: unknown) => v !== undefined && v !== null && v !== "";
 
 export function Field(
-  { ctx, cat, f, value, invalid }: {
+  { ctx, cat, f, value, invalid, ariaLabel }: {
     ctx: RequestContext;
     cat: Category;
     f: InputField;
     value: unknown;
     invalid?: boolean;
+    // Set when the visible <label> belongs to a parent row (e.g. a substat
+    // slot's shared "Substat N" label) so this control still names itself.
+    ariaLabel?: string;
   },
 ) {
   const name = `${cat.key}.${f.key}`;
@@ -49,17 +52,17 @@ export function Field(
     // title shows the full selected value on hover (long substat options can
     // otherwise be clipped by a narrow select).
     return (
-      <select id={name} name={name} title={v ? String(v) : undefined}>
+      <select id={name} name={name} title={v ? String(v) : undefined} aria-label={ariaLabel}>
         <option value="">—</option>
         {(f.options ?? []).map((o) => <option value={o} selected={o === v}>{o}</option>)}
       </select>
     );
   }
   if (f.type === "bool") {
-    return <input id={name} type="checkbox" name={name} checked={!!v} />;
+    return <input id={name} type="checkbox" name={name} checked={!!v} aria-label={ariaLabel} />;
   }
   if (f.type === "text") {
-    return <input id={name} type="text" name={name} value={String(v)} />;
+    return <input id={name} type="text" name={name} value={String(v)} aria-label={ariaLabel} />;
   }
 
   const unit = f.unit ?? "num";
@@ -106,9 +109,10 @@ function labelledField(
   );
 }
 
-// Render a module column's fields. A substat slot is a `_sub<n>_type` select
-// immediately followed by its `_sub<n>_val` text input — render them as one
-// paired row under a single "Substat N" label.
+// Render a module column's fields. A substat slot is a `_sub<n>_rarity` select
+// followed by its `_sub<n>_type` effect select and `_sub<n>_val` text input —
+// render all three as one row under a single "Substat N" label (mirroring the
+// in-game card: rarity pill, effect, value).
 function groupFieldRows(
   ctx: RequestContext,
   cat: Category,
@@ -119,18 +123,39 @@ function groupFieldRows(
   const out = [];
   for (let i = 0; i < fields.length; i++) {
     const f = fields[i];
-    if (/_sub\d+_type$/.test(f.key) && fields[i + 1]) {
-      const val = fields[i + 1];
+    const type = fields[i + 1];
+    const val = fields[i + 2];
+    if (/_sub\d+_rarity$/.test(f.key) && type && val) {
+      const rowLabel = statLabel(ctx.t, cat.key, f.key, f.label);
       out.push(
         <div>
-          <label for={`${cat.key}.${f.key}`}>{statLabel(ctx.t, cat.key, f.key, f.label)}</label>
+          <label for={`${cat.key}.${f.key}`}>{rowLabel}</label>
           <div class="substat-row">
-            <Field ctx={ctx} cat={cat} f={f} value={catData[f.key]} />
-            <Field ctx={ctx} cat={cat} f={val} value={catData[val.key]} />
+            <Field
+              ctx={ctx}
+              cat={cat}
+              f={f}
+              value={catData[f.key]}
+              ariaLabel={`${rowLabel} rarity`}
+            />
+            <Field
+              ctx={ctx}
+              cat={cat}
+              f={type}
+              value={catData[type.key]}
+              ariaLabel={`${rowLabel} effect`}
+            />
+            <Field
+              ctx={ctx}
+              cat={cat}
+              f={val}
+              value={catData[val.key]}
+              ariaLabel={`${rowLabel} value`}
+            />
           </div>
         </div>,
       );
-      i++; // consumed the value field
+      i += 2; // consumed the effect + value fields
     } else {
       out.push(labelledField(ctx, cat, f, catData, invalid));
     }
@@ -194,26 +219,27 @@ function PairedBody(
   },
 ) {
   const { t } = ctx;
-  // Upgrades in col 1 (DOM-first = tab-first), enhancements in col 2.
+  // Two stacked groups mirroring the in-game Upgrade / Enhance tabs: all
+  // upgrades first (a full grid, no sparse gaps), then just the enhancements.
+  // DOM order keeps upgrades tab-first, matching the in-game screen.
+  const enhanced = cat.fields.filter((f) => f.enhancement);
   return (
-    <div class="paired-grid">
-      <div class="col-hdr" style="grid-column:1;grid-row:1">{t("buildForm.upgrade")}</div>
-      <div class="col-hdr" style="grid-column:2;grid-row:1">{t("buildForm.enhancement")}</div>
-      {cat.fields.map((f, i) => (
-        <div style={`grid-column:1;grid-row:${i + 2}`}>
-          {labelledField(ctx, cat, f, catData, invalid)}
-        </div>
-      ))}
-      {cat.fields.map((f, i) =>
-        f.enhancement
-          ? (
-            <div style={`grid-column:2;grid-row:${i + 2}`}>
-              {labelledField(ctx, cat, f.enhancement, catData, invalid)}
+    <>
+      <div class="sub-hdr">{t("buildForm.upgrade")}</div>
+      <div class="grid">
+        {cat.fields.map((f) => labelledField(ctx, cat, f, catData, invalid))}
+      </div>
+      {enhanced.length > 0
+        ? (
+          <>
+            <div class="sub-hdr enh">{t("buildForm.enhancement")}</div>
+            <div class="grid">
+              {enhanced.map((f) => labelledField(ctx, cat, f.enhancement!, catData, invalid))}
             </div>
-          )
-          : null
-      )}
-    </div>
+          </>
+        )
+        : null}
+    </>
   );
 }
 

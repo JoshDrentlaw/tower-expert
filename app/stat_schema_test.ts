@@ -296,6 +296,29 @@ Deno.test("STAT_SCHEMA: each module has 6 structured substat slots (type select 
   }
 });
 
+Deno.test("STAT_SCHEMA: each module substat slot leads with a rarity select", () => {
+  const modules = STAT_SCHEMA.find((c) => c.key === "modules")!;
+  for (const mod of ["cannon", "armor", "generator", "core"]) {
+    const rarities = modules.fields.filter((f) =>
+      new RegExp(`^${mod}_sub\\d+_rarity$`).test(f.key)
+    );
+    assertEquals(rarities.length, 6, `module '${mod}' should have 6 substat-rarity pickers`);
+    assertEquals(
+      rarities.every((f) => f.type === "select" && (f.options ?? []).includes("Ancestral")),
+      true,
+      `${mod} substat rarities must be selects over the rarity ladder`,
+    );
+  }
+});
+
+Deno.test("STAT_SCHEMA: each module has a free-text Main Effect field", () => {
+  const modules = STAT_SCHEMA.find((c) => c.key === "modules")!;
+  for (const mod of ["cannon", "armor", "generator", "core"]) {
+    const effect = modules.fields.find((f) => f.key === `${mod}_effect`);
+    assertEquals(effect?.type, "text", `module '${mod}' should have a text Main Effect field`);
+  }
+});
+
 Deno.test("STAT_SCHEMA: substat pools are module-type specific", () => {
   const modules = STAT_SCHEMA.find((c) => c.key === "modules")!;
   const pool = (mod: string) =>
