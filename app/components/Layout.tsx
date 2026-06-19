@@ -107,8 +107,14 @@ const STYLE = `
   .mod-col .col-hdr { margin-bottom: .5rem; }
   .level-field { display: flex; gap: .4rem; align-items: center; }
   .level-field > * { min-width: 0; }
-  .level-field input.level { flex: 0 0 5.5rem; }  /* the upgrade-level box */
+  .level-field input.level { flex: 0 0 4.5rem; }  /* the upgrade-level box */
   .level-field input:not(.level) { flex: 1; }     /* the computed value box */
+  .max-btn { flex: 0 0 auto; padding: .35rem .5rem; font-size: .72rem; line-height: 1;
+    background: var(--field-bg); color: var(--accent-text); border: 1px solid var(--line);
+    border-radius: 6px; cursor: pointer; font-family: var(--mono); text-transform: uppercase;
+    letter-spacing: .03em; }
+  .max-btn:hover { border-color: var(--accent-text); }
+  .section-tools { display: flex; justify-content: flex-end; margin-bottom: .6rem; }
   .substat-row { display: flex; gap: .4rem; align-items: center; }
   .substat-row > * { min-width: 0; }
   .substat-row select:nth-of-type(1) { flex: 1.6; }  /* rarity pill */

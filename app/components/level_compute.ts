@@ -5,6 +5,10 @@
 // value into the target field, then re-dispatches `input` so the draft-autosave
 // and changed-highlight scripts see the update. The server recomputes the value
 // authoritatively on save (app/stat_formula.ts), so this is preview-only.
+//
+// Also wires the "Max" buttons: a per-field button (data-max="<level input id>")
+// fills that one stat to its max level; a section button (data-max-section)
+// fills every formula field in its <details> section. Both reuse compute().
 
 export const LEVEL_COMPUTE_JS = `
 (function () {
@@ -28,9 +32,27 @@ export const LEVEL_COMPUTE_JS = `
     target.value = fmt(spec.base + spec.increment * lvl, el.getAttribute("data-unit") || "num");
     target.dispatchEvent(new Event("input", { bubbles: true }));
   }
+  function setMax(el) {
+    var spec;
+    try { spec = JSON.parse(el.getAttribute("data-formula")); } catch (e) { return; }
+    el.value = String(spec.maxLevel);
+    compute(el);
+  }
   document.addEventListener("input", function (e) {
     var el = e.target;
     if (el && el.hasAttribute && el.hasAttribute("data-formula")) compute(el);
+  });
+  document.addEventListener("click", function (e) {
+    var btn = e.target;
+    if (!btn || !btn.getAttribute) return;
+    if (btn.hasAttribute("data-max")) {
+      var lvl = document.getElementById(btn.getAttribute("data-max"));
+      if (lvl) setMax(lvl);
+    } else if (btn.hasAttribute("data-max-section")) {
+      var sec = btn.closest("details.section") || document;
+      var inputs = sec.querySelectorAll("[data-formula]");
+      Array.prototype.forEach.call(inputs, setMax);
+    }
   });
 })();
 `;

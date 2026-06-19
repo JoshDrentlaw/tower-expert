@@ -339,12 +339,16 @@ Deno.test("STAT_SCHEMA: module rarity options include the + merge tiers", () => 
   }
 });
 
-Deno.test("STAT_SCHEMA: enemy level skips are workshop fields paired with an (Enh) enhancement", () => {
+Deno.test("STAT_SCHEMA: enemy level skips are two upgrades sharing one unified (×) enhancement", () => {
   const util = STAT_SCHEMA.find((c) => c.key === "workshop_utility")!;
-  for (const base of ["enemy_atk_level_skip", "enemy_hp_level_skip"]) {
-    const field = util.fields.find((f) => f.key === base)!;
-    assertEquals(field?.unit, "pct", `${base} should be a percent`);
-    assertEquals(field?.enhancement?.key, `${base}_enh`, `${base} should pair with ${base}_enh`);
-    assertEquals(field?.enhancement?.unit, "pct", `${base}_enh should be a percent`);
-  }
+  const atk = util.fields.find((f) => f.key === "enemy_atk_level_skip")!;
+  const hp = util.fields.find((f) => f.key === "enemy_hp_level_skip")!;
+  // Both upgrades are percents (the Upgrade tab keeps Attack + Health separate).
+  assertEquals(atk?.unit, "pct", "enemy_atk_level_skip should be a percent");
+  assertEquals(hp?.unit, "pct", "enemy_hp_level_skip should be a percent");
+  // The Enhance tab shows a single "Enemy Level Skip +" × multiplier; model it as
+  // one shared enhancement on the Attack upgrade, with none on Health.
+  assertEquals(atk?.enhancement?.key, "enemy_level_skip_enh");
+  assertEquals(atk?.enhancement?.unit, "mult", "the unified skip enhancement is a multiplier");
+  assertEquals(hp?.enhancement, undefined, "Health carries no separate enhancement");
 });

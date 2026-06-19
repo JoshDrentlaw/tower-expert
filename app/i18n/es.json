@@ -52,6 +52,9 @@
   "buildForm.enhancement": "Realce",
   "buildForm.levelPlaceholder": "nvl 0–{max}",
   "buildForm.levelFor": "nivel de {stat}",
+  "buildForm.maxLevel": "Máx",
+  "buildForm.maxLevelFor": "Poner {stat} al nivel máximo",
+  "buildForm.maxAll": "Todo al máx",
   "buildForm.shorthandHint": "Ingresa los valores como los muestra el juego — p. ej. 869.03M, 56.4%, ×1.012, 14s. Importa la mayúscula del sufijo: q (mil billones) ≠ Q (trillón).",
 
   "draft.prompt": "Tienes un borrador sin guardar en este formulario.",

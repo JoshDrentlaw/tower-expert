@@ -55,6 +55,9 @@
   "buildForm.enhancement": "Enhance",
   "buildForm.levelPlaceholder": "lvl 0–{max}",
   "buildForm.levelFor": "{stat} level",
+  "buildForm.maxLevel": "Max",
+  "buildForm.maxLevelFor": "Set {stat} to max level",
+  "buildForm.maxAll": "Max all",
   "buildForm.shorthandHint": "Enter values the way the game shows them — e.g. 869.03M, 56.4%, ×1.012, 14s. Suffix case matters: q (quadrillion) ≠ Q (quintillion).",
 
   "draft.prompt": "You have an unsaved draft on this form.",

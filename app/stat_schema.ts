@@ -361,6 +361,8 @@ export const STAT_SCHEMA: Category[] = [
         unit: "pct",
         enhancement: enh("packages_enh", "Packages ×"),
       },
+      { key: "max_recovery", label: "Max Recovery", type: "number", unit: "mult" },
+      { key: "package_chance", label: "Package Chance", type: "number", unit: "pct" },
       {
         key: "free_attack",
         label: "Free Attack Upgrades",
@@ -371,29 +373,22 @@ export const STAT_SCHEMA: Category[] = [
       { key: "free_defense", label: "Free Defense Upgrades", type: "number", unit: "pct" },
       { key: "free_utility", label: "Free Utility Upgrades", type: "number", unit: "pct" },
       { key: "cells_kill_bonus", label: "Cells / Kill Bonus (Enh)", type: "int" },
+      // The Upgrade tab has two separate level-skip upgrades (Attack / Health),
+      // but the Enhance tab has a single unified "Enemy Level Skip +" multiplier
+      // (×1.07 in-game). Model it as one shared enhancement hung off the Attack
+      // upgrade; the Health upgrade carries no enhancement of its own.
       {
         key: "enemy_atk_level_skip",
-        label: "Enemy Atk Level Skip",
+        label: "Enemy Attack Level Skip",
         type: "number",
         unit: "pct",
-        enhancement: {
-          key: "enemy_atk_level_skip_enh",
-          label: "Enemy Atk Level Skip (Enh)",
-          type: "number",
-          unit: "pct",
-        },
+        enhancement: enh("enemy_level_skip_enh", "Enemy Level Skip ×"),
       },
       {
         key: "enemy_hp_level_skip",
-        label: "Enemy HP Level Skip",
+        label: "Enemy Health Level Skip",
         type: "number",
         unit: "pct",
-        enhancement: {
-          key: "enemy_hp_level_skip_enh",
-          label: "Enemy HP Level Skip (Enh)",
-          type: "number",
-          unit: "pct",
-        },
       },
     ],
   },

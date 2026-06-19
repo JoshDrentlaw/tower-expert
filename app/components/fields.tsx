@@ -108,23 +108,40 @@ function LevelInput(
   },
 ) {
   const label = statLabel(ctx.t, cat.key, f.key, f.label);
+  const lvlId = `${cat.key}.${f.key}_lvl`;
   return (
-    <input
-      type="text"
-      inputmode="numeric"
-      autocomplete="off"
-      class="level"
-      name={`${cat.key}.${f.key}_lvl`}
-      value={level === null || level === undefined ? "" : String(level)}
-      data-formula={JSON.stringify(f.formula)}
-      data-target={`${cat.key}.${f.key}`}
-      data-unit={f.unit ?? "num"}
-      placeholder={ctx.t("buildForm.levelPlaceholder", {
-        default: "lvl 0–{max}",
-        max: f.formula.maxLevel,
-      })}
-      aria-label={ctx.t("buildForm.levelFor", { default: "{stat} level", stat: label })}
-    />
+    <>
+      <input
+        type="text"
+        inputmode="numeric"
+        autocomplete="off"
+        class="level"
+        id={lvlId}
+        name={lvlId}
+        value={level === null || level === undefined ? "" : String(level)}
+        data-formula={JSON.stringify(f.formula)}
+        data-target={`${cat.key}.${f.key}`}
+        data-unit={f.unit ?? "num"}
+        placeholder={ctx.t("buildForm.levelPlaceholder", {
+          default: "lvl 0–{max}",
+          max: f.formula.maxLevel,
+        })}
+        aria-label={ctx.t("buildForm.levelFor", { default: "{stat} level", stat: label })}
+      />
+      {/* Most stats sit at max; one tap fills the level + computes the value. */}
+      <button
+        type="button"
+        class="max-btn"
+        data-max={lvlId}
+        title={ctx.t("buildForm.maxLevelFor", { default: "Set {stat} to max level", stat: label })}
+        aria-label={ctx.t("buildForm.maxLevelFor", {
+          default: "Set {stat} to max level",
+          stat: label,
+        })}
+      >
+        {ctx.t("buildForm.maxLevel", { default: "Max" })}
+      </button>
+    </>
   );
 }
 
@@ -326,6 +343,10 @@ export function Section(
     ? <PairedBody ctx={ctx} cat={cat} catData={catData} invalid={invalid} />
     : <FlatBody ctx={ctx} cat={cat} catData={catData} invalid={invalid} />;
 
+  // Section-level "Max all" — only where there are formula-backed fields to max
+  // (most stats sit at max level, so this is the common one-tap path).
+  const hasFormula = cat.fields.some((f) => f.formula || f.enhancement?.formula);
+
   // Open sections that already hold data; collapse empty ones so a fresh form
   // isn't a wall of inputs.
   return (
@@ -334,7 +355,18 @@ export function Section(
         <span>{title}</span>
         <span class="count">{filled}/{keys.length}</span>
       </summary>
-      <div class="section-body">{body}</div>
+      <div class="section-body">
+        {hasFormula
+          ? (
+            <div class="section-tools">
+              <button type="button" class="max-btn" data-max-section>
+                {t("buildForm.maxAll", { default: "Max all" })}
+              </button>
+            </div>
+          )
+          : null}
+        {body}
+      </div>
     </details>
   );
 }
