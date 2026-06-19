@@ -5,6 +5,7 @@
 
 import { formatNum, type NumUnit } from "../num_format.ts";
 import type { Category, Field as SchemaField, FieldType } from "../stat_schema.ts";
+import { type Formula, levelFromValue } from "../stat_formula.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import type { TFunc } from "../i18n/index.ts";
 
@@ -25,7 +26,13 @@ const INPUTMODE: Record<NumUnit, string> = {
   sec: "decimal",
 };
 
-type InputField = { key: string; type: FieldType; unit?: NumUnit; options?: string[] };
+type InputField = {
+  key: string;
+  type: FieldType;
+  unit?: NumUnit;
+  options?: string[];
+  formula?: Formula;
+};
 
 // Translatable label for a stat/enhancement field (default = its schema label).
 const statLabel = (t: TFunc, catKey: string, key: string, label: string) =>
@@ -88,6 +95,39 @@ export function Field(
   );
 }
 
+// A small "level → value" input rendered ahead of a formula-backed field's
+// value box. The companion client script (level_compute.ts) reads data-formula
+// and writes the computed value into the value field (id = data-target). The
+// level itself is posted as `<cat>.<key>_lvl` and recomputed server-side on save.
+function LevelInput(
+  { ctx, cat, f, level }: {
+    ctx: RequestContext;
+    cat: Category;
+    f: InputField & { label: string; formula: Formula };
+    level: unknown;
+  },
+) {
+  const label = statLabel(ctx.t, cat.key, f.key, f.label);
+  return (
+    <input
+      type="text"
+      inputmode="numeric"
+      autocomplete="off"
+      class="level"
+      name={`${cat.key}.${f.key}_lvl`}
+      value={level === null || level === undefined ? "" : String(level)}
+      data-formula={JSON.stringify(f.formula)}
+      data-target={`${cat.key}.${f.key}`}
+      data-unit={f.unit ?? "num"}
+      placeholder={ctx.t("buildForm.levelPlaceholder", {
+        default: "lvl 0–{max}",
+        max: f.formula.maxLevel,
+      })}
+      aria-label={ctx.t("buildForm.levelFor", { default: "{stat} level", stat: label })}
+    />
+  );
+}
+
 function labelledField(
   ctx: RequestContext,
   cat: Category,
@@ -95,16 +135,33 @@ function labelledField(
   catData: Record<string, unknown>,
   invalid?: Set<string>,
 ) {
+  const valueField = (
+    <Field
+      ctx={ctx}
+      cat={cat}
+      f={f}
+      value={catData[f.key]}
+      invalid={invalid?.has(`${cat.key}.${f.key}`)}
+    />
+  );
+  // Formula-backed: prefill the level from the stored `_lvl`, or derive it from
+  // a stored value (so builds saved before this feature still show a level).
+  let body = valueField;
+  if (f.formula) {
+    const stored = catData[`${f.key}_lvl`];
+    const v = catData[f.key];
+    const level = stored ?? (typeof v === "number" ? levelFromValue(f.formula, v) : null);
+    body = (
+      <div class="level-field">
+        <LevelInput ctx={ctx} cat={cat} f={{ ...f, formula: f.formula }} level={level} />
+        {valueField}
+      </div>
+    );
+  }
   return (
     <div>
       <label for={`${cat.key}.${f.key}`}>{statLabel(ctx.t, cat.key, f.key, f.label)}</label>
-      <Field
-        ctx={ctx}
-        cat={cat}
-        f={f}
-        value={catData[f.key]}
-        invalid={invalid?.has(`${cat.key}.${f.key}`)}
-      />
+      {body}
     </div>
   );
 }
