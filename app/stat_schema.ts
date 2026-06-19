@@ -245,7 +245,7 @@ export const STAT_SCHEMA: Category[] = [
           maxLevel: 400,
         }),
       },
-      { key: "range", label: "Range", type: "int" },
+      { key: "range", label: "Attack Range", type: "int" },
       {
         key: "damage_per_meter",
         label: "Damage / Meter",
@@ -311,8 +311,8 @@ export const STAT_SCHEMA: Category[] = [
       { key: "lifesteal", label: "Lifesteal", type: "number", unit: "pct" },
       { key: "knockback_chance", label: "Knockback Chance", type: "number", unit: "pct" },
       { key: "knockback_force", label: "Knockback Force", type: "int" },
-      { key: "orbs", label: "Orbs", type: "int", enhancement: enh("orb_size_enh", "Orb Size ×") },
       { key: "orb_speed", label: "Orb Speed", type: "int" },
+      { key: "orbs", label: "Orbs", type: "int", enhancement: enh("orb_size_enh", "Orb Size ×") },
       { key: "shockwave_size", label: "Shockwave Size", type: "int" },
       { key: "shockwave_freq", label: "Shockwave Frequency", type: "number", unit: "sec" },
       { key: "land_mine_chance", label: "Land Mine Chance", type: "number", unit: "pct" },
