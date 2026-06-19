@@ -11,6 +11,7 @@ import { Section } from "./fields.tsx";
 import { Onboard } from "./onboard.tsx";
 import { AUTOSAVE_JS } from "./draft_autosave.ts";
 import { HIGHLIGHT_JS } from "./changed_highlight.ts";
+import { LEVEL_COMPUTE_JS } from "./level_compute.ts";
 
 // Inline client-side draft autosave for the build form (the app's only client
 // JS). Banner strings are passed via window.__draftI18n so they stay
@@ -120,6 +121,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
       </form>
       <DraftAutosave ctx={ctx} />
       <script dangerouslySetInnerHTML={{ __html: HIGHLIGHT_JS }} />
+      <script dangerouslySetInnerHTML={{ __html: LEVEL_COMPUTE_JS }} />
     </>
   );
 }

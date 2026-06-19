@@ -10,6 +10,7 @@ import {
   updateBuild,
 } from "../../db/db.ts";
 import { coerce, type FieldType, STAT_SCHEMA } from "../stat_schema.ts";
+import { type Formula, valueFromLevel } from "../stat_formula.ts";
 import type { NumUnit } from "../num_format.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import { renderPage } from "../services/render.tsx";
@@ -61,10 +62,36 @@ function readStats(ctx: RequestContext, form: FormData): {
         section[key] = raw; // echo the bad input back into the re-rendered field
       }
     };
+    // Formula-backed field: if a level was entered, recompute the value from it
+    // (authoritative — never trust the posted value field) and store both the
+    // value and the `<key>_lvl`. A blank/invalid level falls through to the
+    // value field below, so manual entry still works as a fallback.
+    const takeField = (
+      key: string,
+      type: FieldType,
+      unit: NumUnit | undefined,
+      label: string,
+      formula: Formula | undefined,
+    ) => {
+      if (formula) {
+        const rawLvl = form.get(`${cat.key}.${key}_lvl`) as string | null;
+        if (rawLvl !== null && /^\d+$/.test(rawLvl.trim())) {
+          const lvl = Math.min(Number(rawLvl.trim()), formula.maxLevel);
+          const value = valueFromLevel(formula, lvl);
+          if (value !== null) {
+            section[key] = value;
+            section[`${key}_lvl`] = lvl;
+            return;
+          }
+        }
+      }
+      take(key, type, unit, label);
+    };
     for (const f of cat.fields) {
-      take(f.key, f.type, f.unit, f.label);
+      takeField(f.key, f.type, f.unit, f.label, f.formula);
       if (f.enhancement) {
-        take(f.enhancement.key, f.enhancement.type, f.enhancement.unit, f.enhancement.label);
+        const e = f.enhancement;
+        takeField(e.key, e.type, e.unit, e.label, e.formula);
       }
     }
     if (Object.keys(section).length > 0) data[cat.key] = section;

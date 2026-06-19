@@ -101,6 +101,10 @@ const STYLE = `
     gap: .9rem 1.25rem; align-items: start; }
   .mod-col > div { margin-bottom: .5rem; }
   .mod-col .col-hdr { margin-bottom: .5rem; }
+  .level-field { display: flex; gap: .4rem; align-items: center; }
+  .level-field > * { min-width: 0; }
+  .level-field input.level { flex: 0 0 5.5rem; }  /* the upgrade-level box */
+  .level-field input:not(.level) { flex: 1; }     /* the computed value box */
   .substat-row { display: flex; gap: .4rem; align-items: center; }
   .substat-row > * { min-width: 0; }
   .substat-row select:nth-of-type(1) { flex: 1.6; }  /* rarity pill */

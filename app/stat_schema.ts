@@ -11,6 +11,7 @@
 // values are stored flat in the same category namespace with their own key.
 
 import { type NumUnit, parseHuman } from "./num_format.ts";
+import type { Formula } from "./stat_formula.ts";
 
 export type FieldType = "int" | "number" | "text" | "bool" | "select";
 
@@ -22,6 +23,10 @@ export interface Enhancement {
   // Omitted = "num" (plain magnitude). See app/num_format.ts.
   unit?: NumUnit;
   options?: string[];
+  // When set, the form offers a level input that computes this value (and the
+  // server recomputes it on save). See app/stat_formula.ts. Stored as a
+  // sibling `<key>_lvl` in the same category namespace.
+  formula?: Formula;
 }
 
 export interface Field {
@@ -31,6 +36,8 @@ export interface Field {
   unit?: NumUnit;
   options?: string[];
   enhancement?: Enhancement;
+  // Level→value scaling; see Enhancement.formula above and app/stat_formula.ts.
+  formula?: Formula;
   // When set, the renderer lays the category out as one column per group
   // (used by Modules: a column per Cannon/Armor/Generator/Core). All fields in
   // a group share the same {key,label}; coercion/storage is unaffected.
@@ -59,12 +66,15 @@ const RARITY = [
 ];
 
 // Shorthand for the common enhancement (all enhancements are × multipliers,
-// e.g. ×1.012 — so they're decimal-valued and formatted as multipliers).
-const enh = (key: string, label: string): Enhancement => ({
+// e.g. ×1.012 — so they're decimal-valued and formatted as multipliers). Pass a
+// `formula` for the linear enhancements whose level→value scaling is documented
+// on the wiki (most ×enhancements are base 1 + 0.01/level, varying max level).
+const enh = (key: string, label: string, formula?: Formula): Enhancement => ({
   key,
   label,
   type: "number",
   unit: "mult",
+  formula,
 });
 
 // Sub-module effect pools per module type (sourced from the Fandom wiki's
@@ -197,20 +207,43 @@ export const STAT_SCHEMA: Category[] = [
     key: "workshop_attack",
     title: "Workshop — Attack",
     fields: [
-      { key: "damage", label: "Damage", type: "int", enhancement: enh("damage_enh", "Damage ×") },
+      // Damage's base value is a ~6000-level tiered grind with no clean closed
+      // form, so it stays manual; its enhancement (Damage ×) is linear.
+      {
+        key: "damage",
+        label: "Damage",
+        type: "int",
+        enhancement: enh("damage_enh", "Damage ×", { base: 1, increment: 0.01, maxLevel: 400 }),
+      },
       {
         key: "attack_speed",
         label: "Attack Speed",
         type: "int",
-        enhancement: enh("attack_speed_enh", "Attack Speed ×"),
+        formula: { base: 1, increment: 0.05, maxLevel: 99 },
+        enhancement: enh("attack_speed_enh", "Attack Speed ×", {
+          base: 1,
+          increment: 0.01,
+          maxLevel: 75,
+        }),
       },
-      { key: "crit_chance", label: "Crit Chance", type: "number", unit: "pct" },
+      {
+        key: "crit_chance",
+        label: "Crit Chance",
+        type: "number",
+        unit: "pct",
+        formula: { base: 1, increment: 1, maxLevel: 79 },
+      },
       {
         key: "crit_factor",
         label: "Crit Factor",
         type: "number",
         unit: "mult",
-        enhancement: enh("crit_factor_enh", "Crit Factor ×"),
+        formula: { base: 1.2, increment: 0.1, maxLevel: 150 },
+        enhancement: enh("crit_factor_enh", "Crit Factor ×", {
+          base: 1,
+          increment: 0.01,
+          maxLevel: 400,
+        }),
       },
       { key: "range", label: "Range", type: "int" },
       {
@@ -220,8 +253,19 @@ export const STAT_SCHEMA: Category[] = [
         unit: "mult",
         enhancement: enh("damage_per_meter_enh", "Damage / Meter ×"),
       },
-      { key: "multishot_chance", label: "Multishot Chance", type: "number", unit: "pct" },
-      { key: "multishot_targets", label: "Multishot Targets", type: "int" },
+      {
+        key: "multishot_chance",
+        label: "Multishot Chance",
+        type: "number",
+        unit: "pct",
+        formula: { base: 0, increment: 0.5, maxLevel: 99 },
+      },
+      {
+        key: "multishot_targets",
+        label: "Multishot Targets",
+        type: "int",
+        formula: { base: 2, increment: 1, maxLevel: 7 },
+      },
       { key: "rapid_fire_chance", label: "Rapid Fire Chance", type: "number", unit: "pct" },
       { key: "rapid_fire_dur", label: "Rapid Fire Duration", type: "number", unit: "sec" },
       { key: "bounce_chance", label: "Bounce Shot Chance", type: "number", unit: "pct" },
