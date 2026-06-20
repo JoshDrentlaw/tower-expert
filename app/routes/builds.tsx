@@ -10,6 +10,7 @@ import {
   updateBuild,
 } from "../../db/db.ts";
 import { coerce, type FieldType, STAT_SCHEMA } from "../stat_schema.ts";
+import { lineContaining } from "../build_lineage.ts";
 import { type Formula, valueFromLevel } from "../stat_formula.ts";
 import type { NumUnit } from "../num_format.ts";
 import type { RequestContext } from "../services/ctx.ts";
@@ -120,14 +121,6 @@ function labelAndFieldErrors(
 const errorStatus = (labelRaw: string | undefined, failedCount: number) =>
   labelRaw && failedCount === 0 ? 422 : 400;
 
-// Where to go after a build saves. `then=log` routes into the log-run form with
-// this build preselected (the build-change → log-run round-trip); otherwise the
-// build detail page as usual. Only "log" is honored (never raw user input).
-function afterBuildSave(ctx: RequestContext, reqUrl: string, id: number, then: string | null) {
-  const path = then === "log" ? `${ctx.base}/reports/new?build=${id}` : `${ctx.base}/builds/${id}`;
-  return Response.redirect(new URL(path, reqUrl), 303);
-}
-
 // GET {base}/builds  — history
 export async function handleList(ctx: RequestContext): Promise<Response> {
   const builds = await listBuilds();
@@ -141,10 +134,11 @@ export async function handleList(ctx: RequestContext): Promise<Response> {
 }
 
 // GET {base}/builds/new          — blank form
-// GET {base}/builds/new?from=latest | ?from=<id>  — prefilled for respec
+// GET {base}/builds/new?from=latest | ?from=<id>          — prefilled for respec
+// GET {base}/builds/new?from=<id>&level=1                 — next snapshot (keeps name)
 export async function handleNew(ctx: RequestContext, url: URL): Promise<Response> {
   const from = url.searchParams.get("from");
-  const then = url.searchParams.get("then") ?? undefined;
+  const level = url.searchParams.get("level") === "1";
   let build: Build | undefined;
   if (from === "latest") build = await getLatestBuild();
   else if (from && /^\d+$/.test(from)) build = await getBuild(Number(from));
@@ -152,7 +146,7 @@ export async function handleNew(ctx: RequestContext, url: URL): Promise<Response
   return page(
     ctx,
     ctx.t("title.newBuild"),
-    <BuildForm ctx={ctx} opts={build ? { build, parentId: build.id, then } : { then }} />,
+    <BuildForm ctx={ctx} opts={build ? { build, parentId: build.id, level } : {}} />,
     200,
     ctx.t("heading.newBuild"),
   );
@@ -166,7 +160,7 @@ export async function handleSave(ctx: RequestContext, req: Request): Promise<Res
   const note = (form.get("note") as string | null)?.trim() || null;
   const parentRaw = form.get("parent_build_id") as string | null;
   const parent_build_id = parentRaw && /^\d+$/.test(parentRaw) ? Number(parentRaw) : null;
-  const then = (form.get("then") as string | null) ?? undefined;
+  const level = form.get("level") === "1";
 
   const { data, failed, failedKeys } = readStats(ctx, form);
   const errors = labelAndFieldErrors(ctx, labelRaw, failed);
@@ -184,7 +178,7 @@ export async function handleSave(ctx: RequestContext, req: Request): Promise<Res
           submittedNote: note ?? "",
           submittedData: data,
           invalidKeys: failedKeys,
-          then,
+          level,
         }}
       />,
       errorStatus(labelRaw, failed.length),
@@ -193,11 +187,12 @@ export async function handleSave(ctx: RequestContext, req: Request): Promise<Res
   }
 
   const id = await insertBuild({ label: labelRaw!, note, parent_build_id, data });
-  return afterBuildSave(ctx, req.url, id, then ?? null);
+  return Response.redirect(new URL(`${ctx.base}/builds/${id}`, req.url), 303);
 }
 
-// GET {base}/builds/:id/edit  — edit a build in place (leveling, not a respec)
-export async function handleEdit(ctx: RequestContext, id: number, url: URL): Promise<Response> {
+// GET {base}/builds/:id/edit  — edit a build in place (correcting a snapshot,
+// not leveling — leveling creates a new snapshot in the line)
+export async function handleEdit(ctx: RequestContext, id: number): Promise<Response> {
   const build = await getBuild(id);
   if (!build) {
     return page(
@@ -208,11 +203,10 @@ export async function handleEdit(ctx: RequestContext, id: number, url: URL): Pro
       ctx.t("heading.notFound"),
     );
   }
-  const then = url.searchParams.get("then") ?? undefined;
   return page(
     ctx,
     ctx.t("title.editBuild", { id }),
-    <BuildForm ctx={ctx} opts={{ build, editId: id, then }} />,
+    <BuildForm ctx={ctx} opts={{ build, editId: id }} />,
     200,
     ctx.t("heading.editBuild", { id }),
   );
@@ -227,7 +221,6 @@ export async function handleUpdate(
   const form = await req.formData();
   const labelRaw = (form.get("label") as string | null)?.trim();
   const note = (form.get("note") as string | null)?.trim() || null;
-  const then = (form.get("then") as string | null) ?? undefined;
 
   const { data, failed, failedKeys } = readStats(ctx, form);
   const errors = labelAndFieldErrors(ctx, labelRaw, failed);
@@ -245,7 +238,6 @@ export async function handleUpdate(
           submittedNote: note ?? "",
           submittedData: data,
           invalidKeys: failedKeys,
-          then,
         }}
       />,
       errorStatus(labelRaw, failed.length),
@@ -263,7 +255,7 @@ export async function handleUpdate(
       ctx.t("heading.notFound"),
     );
   }
-  return afterBuildSave(ctx, req.url, id, then ?? null);
+  return Response.redirect(new URL(`${ctx.base}/builds/${id}`, req.url), 303);
 }
 
 // Stat keys (`<cat>.<field>`) whose stored value differs between two builds.
@@ -303,6 +295,8 @@ export async function handleDetail(ctx: RequestContext, id: number): Promise<Res
     const parent = await getBuild(build.parent_build_id);
     if (parent) changed = diffKeys(build.data, parent.data);
   }
+  // The line this snapshot belongs to (for the history panel).
+  const line = lineContaining(await listBuilds(), id);
   return page(
     ctx,
     ctx.t("title.build", { id, label: build.label }),
@@ -311,6 +305,7 @@ export async function handleDetail(ctx: RequestContext, id: number): Promise<Res
       b={build}
       changed={changed}
       parentId={build.parent_build_id ?? undefined}
+      line={line}
     />,
     200,
     ctx.t("heading.build", { id, label: build.label }),

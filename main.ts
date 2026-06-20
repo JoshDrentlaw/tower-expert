@@ -50,7 +50,7 @@ Deno.serve({ port: PORT }, async (req) => {
 
     const buildEditMatch = buildEditPattern.exec(url);
     if (req.method === "GET" && buildEditMatch) {
-      return await handleEdit(ctx, Number(buildEditMatch.pathname.groups.id), url);
+      return await handleEdit(ctx, Number(buildEditMatch.pathname.groups.id));
     }
 
     const buildMatch = buildPattern.exec(url);
@@ -67,7 +67,7 @@ Deno.serve({ port: PORT }, async (req) => {
       return await handleReportProgression(ctx);
     }
     if (req.method === "GET" && pathname === `${BASE}/reports/new`) {
-      return await handleReportNew(ctx, url);
+      return await handleReportNew(ctx);
     }
     if (req.method === "POST" && pathname === `${BASE}/reports`) {
       return await handleReportSave(ctx, req);
