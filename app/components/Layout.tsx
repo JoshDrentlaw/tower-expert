@@ -67,6 +67,11 @@ const STYLE = `
     border-radius: 8px; background: var(--panel); padding: .6rem .8rem; margin: 0 0 1rem; }
   .build-prompt .hint { margin: 0 0 .5rem; }
   .build-prompt-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+  details.line-history { margin: 0 0 1.25rem; }
+  details.line-history > summary { font-family: var(--mono); font-size: .78rem; cursor: pointer;
+    color: var(--accent-text); padding: .25rem 0; }
+  .line-snaps { margin: .4rem 0 0; padding-left: 1.2rem; font-family: var(--mono); font-size: .82rem;
+    line-height: 1.7; }
   label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .25rem;
     font-family: var(--body); }
   input, select, textarea {

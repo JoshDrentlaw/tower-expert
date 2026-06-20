@@ -31,12 +31,13 @@ export function ReportForm(
   { ctx, builds, opts = {} }: {
     ctx: RequestContext;
     builds: Build[];
-    opts?: { raw?: string; buildId?: string | number; error?: string; justSaved?: boolean };
+    opts?: { raw?: string; buildId?: string | number; error?: string };
   },
 ) {
   const { base, t } = ctx;
-  // Builds arrive newest-first; default a run to the latest build so it stops
-  // landing as "no build". An explicit ?build= (the round-trip) wins.
+  // Builds arrive newest-first; default a run to the latest build (the current
+  // head) so it stops landing as "no build". A run records the stats that
+  // produced it — you snapshot your *next* build after the run (see ReportDetail).
   const latest = builds[0];
   const selectedBuildId = opts.buildId != null
     ? String(opts.buildId)
@@ -46,43 +47,7 @@ export function ReportForm(
       {opts.error
         ? <p id="form-error" class="hint" style="color:var(--error)" role="alert">{opts.error}</p>
         : null}
-      {opts.justSaved
-        ? (
-          <p class="hint" style="color:var(--accent-text)" role="status">
-            {t("reportForm.buildUpdated")}
-          </p>
-        )
-        : null}
       <p class="hint">{t("reportForm.hint")}</p>
-      {
-        /* Build-change prompt: keep each run tied to the stats that produced it.
-          If you reallocated since your last run, update/respec first — that
-          round-trips back here with the new build preselected. */
-      }
-      {latest
-        ? (
-          <div class="build-prompt">
-            <p class="hint">
-              {t("reportForm.buildChangeQ", { label: `#${latest.id} ${latest.label}` })}
-            </p>
-            <div class="build-prompt-actions">
-              <a class="btn" href={`${base}/builds/${latest.id}/edit?then=log`}>
-                {t("reportForm.leveledUp")}
-              </a>
-              <a class="btn" href={`${base}/builds/new?from=${latest.id}&then=log`}>
-                {t("reportForm.respecced")}
-              </a>
-            </div>
-          </div>
-        )
-        : (
-          <p class="hint">
-            {t("reportForm.noBuildYet")}{" "}
-            <a href={`${base}/builds/new?then=log`} style="color:var(--accent-text)">
-              {t("reportForm.createBuild")}
-            </a>
-          </p>
-        )}
       <div class="meta">
         <div>
           <label for="build_id">{t("reportForm.buildOptional")}</label>
@@ -94,6 +59,14 @@ export function ReportForm(
               </option>
             ))}
           </select>
+          {latest ? null : (
+            <p class="hint" style="margin-top:.4rem">
+              {t("reportForm.noBuildYet")}{" "}
+              <a href={`${base}/builds/new`} style="color:var(--accent-text)">
+                {t("reportForm.createBuild")}
+              </a>
+            </p>
+          )}
         </div>
         <div></div>
       </div>
@@ -301,9 +274,29 @@ export function ReportDetail({ ctx, r }: { ctx: RequestContext; r: BattleReport 
     );
   }
 
+  // Post-run build-change prompt: you've just seen this run's result; now you
+  // spend coins and level up, which defines the build for your NEXT run. Capture
+  // it here (the moment you make the change) as the next snapshot in the line.
+  const nextBuildHref = r.build_id
+    ? `${base}/builds/new?from=${r.build_id}&level=1`
+    : `${base}/builds/new`;
+
   return (
     <>
       <table style="width:auto;margin-bottom:1.5rem;font-size:.88rem;">{rows}</table>
+      <div class="build-prompt">
+        <p class="hint">{t("reportDetail.nextBuildQ")}</p>
+        <div class="build-prompt-actions">
+          <a class="btn" href={nextBuildHref}>{t("reportDetail.snapshotNext")}</a>
+          {r.build_id
+            ? (
+              <a class="btn" href={`${base}/builds/new?from=${r.build_id}`}>
+                {t("reportDetail.respecInstead")}
+              </a>
+            )
+            : null}
+        </div>
+      </div>
       <details style="margin-top:1rem;">
         <summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">
           {t("reportDetail.fullData")}

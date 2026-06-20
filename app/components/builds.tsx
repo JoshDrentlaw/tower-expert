@@ -4,6 +4,7 @@
 import type { VNode } from "preact";
 import type { Build } from "../../db/db.ts";
 import { type Category, type Field as SchemaField, STAT_SCHEMA } from "../stat_schema.ts";
+import { type BuildLine, buildLines } from "../build_lineage.ts";
 import type { NumUnit } from "../num_format.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import type { Formatter } from "../services/format.ts";
@@ -63,10 +64,10 @@ export interface BuildFormOpts {
   // Field names (`${cat.key}.${field.key}`) that failed to parse — marked
   // aria-invalid and pointed at the error banner.
   invalidKeys?: string[];
-  // When "log", saving this build redirects to the log-run form with this build
-  // preselected (the build-change → log-run round-trip). Carried as a hidden
-  // field so it survives POST + validation re-renders.
-  then?: string;
+  // "Level up" mode: cloning the current build into the next snapshot in the
+  // same line (after a run, when you spend coins). Unlike a respec it carries
+  // the name forward unchanged. Carried as a hidden field so it survives POST.
+  level?: boolean;
 }
 
 export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: BuildFormOpts }) {
@@ -84,13 +85,16 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
     ? opts.submittedLabel
     : isEdit
     ? (opts.build?.label ?? "")
-    : (opts.build ? `${opts.build.label} (respec)` : "");
+    // Leveling keeps the line's name; a respec marks itself as one.
+    : (opts.build ? (opts.level ? opts.build.label : `${opts.build.label} (respec)`) : "");
   const noteValue = opts.submittedNote !== undefined
     ? opts.submittedNote
     : (isEdit ? (opts.build?.note ?? "") : "");
 
   const introNote = isEdit
     ? <p class="hint">{t("buildForm.editing", { id: opts.editId! })}</p>
+    : opts.level && opts.build && !opts.submittedData
+    ? <p class="hint">{t("buildForm.leveling", { id: opts.build.id })}</p>
     : opts.build && !opts.submittedData
     ? <p class="hint">{t("buildForm.cloned", { id: opts.build.id })}</p>
     : (
@@ -106,7 +110,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
     <>
       <form method="post" action={action} data-highlight-changes={highlight ? "1" : undefined}>
         {isEdit ? null : <input type="hidden" name="parent_build_id" value={String(parentId)} />}
-        {opts.then ? <input type="hidden" name="then" value={opts.then} /> : null}
+        {opts.level ? <input type="hidden" name="level" value="1" /> : null}
         {opts.error
           ? <p id="form-error" class="hint" style="color:var(--error)" role="alert">{opts.error}</p>
           : null}
@@ -164,6 +168,8 @@ export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build
       />
     );
   }
+  const lines = buildLines(builds);
+  const noteById = new Map(builds.map((b) => [b.id, b.note]));
   return (
     <>
       <div class="list-actions">
@@ -174,23 +180,25 @@ export function BuildsList({ ctx, builds }: { ctx: RequestContext; builds: Build
         <thead>
           <tr>
             <th scope="col">{t("buildsList.thBuild")}</th>
-            <th scope="col">{t("buildsList.thRespecOf")}</th>
+            <th scope="col">{t("buildsList.thSnapshots")}</th>
             <th scope="col">{t("buildsList.thNote")}</th>
             <th scope="col">{t("buildsList.thSaved")}</th>
           </tr>
         </thead>
         <tbody>
-          {builds.map((b) => (
+          {lines.map((line) => (
             <tr>
               <td data-label={t("buildsList.thBuild")}>
-                <a href={`${base}/builds/${b.id}`}>#{b.id} {b.label}</a>
+                <a href={`${base}/builds/${line.head.id}`}>
+                  {line.head.label} <span class="hint">· v{line.head.version}</span>
+                </a>
               </td>
-              <td data-label={t("buildsList.thRespecOf")}>
-                {b.parent_build_id ? "#" + b.parent_build_id : "—"}
+              <td data-label={t("buildsList.thSnapshots")}>{fmt.integer(line.count)}</td>
+              <td class="hint" data-label={t("buildsList.thNote")}>
+                {noteById.get(line.head.id) ?? ""}
               </td>
-              <td class="hint" data-label={t("buildsList.thNote")}>{b.note ?? ""}</td>
               <td class="hint" data-label={t("buildsList.thSaved")}>
-                {fmt.dateTime(b.created_at)}
+                {fmt.dateTime(line.head.created_at)}
               </td>
             </tr>
           ))}
@@ -311,12 +319,36 @@ function DetailSection(
   );
 }
 
+function LineHistory({ ctx, b, line }: { ctx: RequestContext; b: Build; line: BuildLine }) {
+  const { base, t } = ctx;
+  if (line.count < 2) return null;
+  return (
+    <details class="line-history" open>
+      <summary>{t("buildDetail.lineHistory", { count: line.count })}</summary>
+      <ol class="line-snaps">
+        {line.snapshots.map((s) => (
+          <li>
+            {s.id === b.id
+              ? <strong>v{s.version} · {ctx.fmt.dateTime(s.created_at)} ←</strong>
+              : (
+                <a href={`${base}/builds/${s.id}`}>
+                  v{s.version} · {ctx.fmt.dateTime(s.created_at)}
+                </a>
+              )}
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
+}
+
 export function BuildDetail(
-  { ctx, b, changed, parentId }: {
+  { ctx, b, changed, parentId, line }: {
     ctx: RequestContext;
     b: Build;
     changed?: Set<string>;
     parentId?: number;
+    line?: BuildLine;
   },
 ) {
   const { base, t } = ctx;
@@ -326,13 +358,17 @@ export function BuildDetail(
   return (
     <>
       <p style="display:flex;gap:1.25rem;flex-wrap:wrap;font-family:var(--mono)">
-        <a href={`${base}/builds/${b.id}/edit`} style="color:var(--accent-text)">
-          {t("buildDetail.edit")}
+        <a href={`${base}/builds/new?from=${b.id}&level=1`} style="color:var(--accent-text)">
+          {t("buildDetail.levelUp")}
         </a>
         <a href={`${base}/builds/new?from=${b.id}`} style="color:var(--accent-text)">
           {t("buildDetail.respecFrom")}
         </a>
+        <a href={`${base}/builds/${b.id}/edit`} style="color:var(--accent-text)">
+          {t("buildDetail.edit")}
+        </a>
       </p>
+      {line ? <LineHistory ctx={ctx} b={b} line={line} /> : null}
       {changed && changed.size > 0 && parentId
         ? (
           <p class="hint">
