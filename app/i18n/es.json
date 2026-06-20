@@ -55,6 +55,8 @@
   "buildForm.maxLevel": "Máx",
   "buildForm.maxLevelFor": "Poner {stat} al nivel máximo",
   "buildForm.maxAll": "Todo al máx",
+  "buildForm.substats": "Substats (opcional)",
+  "buildForm.moduleMainEffect": "Efecto principal",
   "buildForm.shorthandHint": "Ingresa los valores como los muestra el juego — p. ej. 869.03M, 56.4%, ×1.012, 14s. Importa la mayúscula del sufijo: q (mil billones) ≠ Q (trillón).",
 
   "draft.prompt": "Tienes un borrador sin guardar en este formulario.",
@@ -85,6 +87,7 @@
   "buildDetail.changedSr": "Cambiado:",
   "buildDetail.changedLegend": "cambiado respecto al build #{id}",
   "buildDetail.noStats": "Este snapshot no tiene stats guardados.",
+  "buildDetail.uniqueEffect": "Efecto Único",
   "buildDetail.rawData": "datos en bruto",
   "buildDetail.notFound": "No existe el build #{id}.",
 
