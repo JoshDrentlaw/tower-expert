@@ -1,124 +1,79 @@
-// progression.ts — pure geometry for the run-progression charts.
+// progression.ts — pure data-shaping for the run-progression charts.
 //
-// Turns a list of run metrics (a value at a point in time, tagged with the
-// build that was active) into plotted SVG coordinates plus the build-change
-// markers that make "I reallocated here → the trend moved" visible. No I/O, no
-// imports — pure and unit-tested. The view (components/reports.tsx) renders the
-// returned geometry as a static <svg>.
+// uPlot (client-side) handles scaling/drawing now, so this module's job is just
+// to turn battle reports into the per-run points the charts consume, plus the
+// small derived bits the view needs (coins/hour, the tier list, the default
+// tier for the wave filter). No I/O, no imports — pure and unit-tested.
 
-// One run's value for a single metric. `t` is occurred_at as epoch milliseconds.
-export interface Sample {
+// Minimal shape we need from a battle report (BattleReport satisfies it). Kept
+// local so this module has no runtime dependency on db.ts.
+export interface RunInput {
+  id: number;
+  occurred_at: string;
+  tier: number | null;
+  wave: number | null;
+  coins: number | null;
+  duration_s: number | null;
+  build_id: number | null;
+  build_label?: string | null;
+}
+
+// A run as the charts see it. `t` is epoch SECONDS (uPlot's time axis unit).
+export interface RunPoint {
   id: number;
   t: number;
-  value: number;
+  tier: number | null;
   buildId: number | null;
+  buildLabel: string | null;
+  wave: number | null;
+  coins: number | null;
+  cph: number | null; // coins per hour — the tier-comparable farming KPI
 }
 
-// A sample placed in the SVG viewport. `buildChanged` is true when this run's
-// build differs from the chronologically previous run's — the spot to draw a
-// vertical marker.
-export interface Plotted {
-  id: number;
-  cx: number;
-  cy: number;
-  value: number;
-  t: number;
-  buildId: number | null;
-  buildChanged: boolean;
+// Coins earned per hour of real run time. null when either input is missing or
+// the duration is non-positive (avoids divide-by-zero / Infinity).
+export function coinsPerHour(coins: number | null, durationS: number | null): number | null {
+  if (coins == null || durationS == null || durationS <= 0) return null;
+  return coins / (durationS / 3600);
 }
 
-export interface Chart {
-  w: number;
-  h: number;
-  pad: number;
-  plotted: Plotted[];
-  polyline: string; // "x,y x,y …" for an <polyline points=…>
-  vMin: number; // value-axis bounds actually used (after flat-series padding)
-  vMax: number;
-  tMin: number; // time range of the plotted samples (epoch ms)
-  tMax: number;
+// Reports → chart points, sorted ascending by time (stable on id for ties).
+export function toRunPoints(reports: RunInput[]): RunPoint[] {
+  return reports
+    .map((r) => ({
+      id: r.id,
+      t: Math.floor(new Date(r.occurred_at).getTime() / 1000),
+      tier: r.tier,
+      buildId: r.build_id,
+      buildLabel: r.build_label ?? null,
+      wave: r.wave,
+      coins: r.coins,
+      cph: coinsPerHour(r.coins, r.duration_s),
+    }))
+    .sort((a, b) => a.t - b.t || a.id - b.id);
 }
 
-export interface ChartOpts {
-  w?: number;
-  h?: number;
-  pad?: number;
+// Distinct tiers present (ascending) — for the wave chart's tier selector.
+export function tiersOf(points: RunPoint[]): number[] {
+  const s = new Set<number>();
+  for (const p of points) if (p.tier != null) s.add(p.tier);
+  return [...s].sort((a, b) => a - b);
 }
 
-// Build chart geometry from samples. Samples are sorted ascending by time
-// (stable on id for equal timestamps). Returns an empty chart for no samples.
-// When all timestamps are equal, points are distributed evenly by index so a
-// batch of same-dated runs still reads left→right. When all values are equal,
-// the value axis is padded so the line sits mid-height instead of on an edge.
-export function buildChart(samples: Sample[], opts: ChartOpts = {}): Chart {
-  const w = opts.w ?? 640;
-  const h = opts.h ?? 160;
-  const pad = opts.pad ?? 28;
-
-  const sorted = [...samples].sort((a, b) => a.t - b.t || a.id - b.id);
-  const empty: Chart = {
-    w,
-    h,
-    pad,
-    plotted: [],
-    polyline: "",
-    vMin: 0,
-    vMax: 0,
-    tMin: 0,
-    tMax: 0,
-  };
-  if (sorted.length === 0) return empty;
-
-  const tMin = sorted[0].t;
-  const tMax = sorted[sorted.length - 1].t;
-  const tSpan = tMax - tMin;
-
-  const values = sorted.map((s) => s.value);
-  let vMin = Math.min(...values);
-  let vMax = Math.max(...values);
-  if (vMin === vMax) {
-    // Flat series: pad around the value so the line is centered and visible.
-    const bump = vMin === 0 ? 1 : Math.abs(vMin) * 0.1;
-    vMin -= bump;
-    vMax += bump;
+// The tier with the most wave-bearing runs — the sensible default for the wave
+// chart, since plotting wave across mixed tiers is meaningless. null when none.
+export function mostFarmedTier(points: RunPoint[]): number | null {
+  const count = new Map<number, number>();
+  for (const p of points) {
+    if (p.tier != null && p.wave != null) count.set(p.tier, (count.get(p.tier) ?? 0) + 1);
   }
-  const vSpan = vMax - vMin;
-
-  const innerW = w - pad * 2;
-  const innerH = h - pad * 2;
-  const n = sorted.length;
-
-  const plotted: Plotted[] = sorted.map((s, i) => {
-    const fx = tSpan === 0 ? (n === 1 ? 0.5 : i / (n - 1)) : (s.t - tMin) / tSpan;
-    const fy = (s.value - vMin) / vSpan;
-    const cx = pad + fx * innerW;
-    const cy = pad + (1 - fy) * innerH; // invert: larger value sits higher
-    const prev = i > 0 ? sorted[i - 1].buildId : null;
-    const buildChanged = i > 0 && s.buildId !== prev;
-    return {
-      id: s.id,
-      cx: round(cx),
-      cy: round(cy),
-      value: s.value,
-      t: s.t,
-      buildId: s.buildId,
-      buildChanged,
-    };
-  });
-
-  return {
-    w,
-    h,
-    pad,
-    plotted,
-    polyline: plotted.map((p) => `${p.cx},${p.cy}`).join(" "),
-    vMin,
-    vMax,
-    tMin,
-    tMax,
-  };
-}
-
-function round(n: number): number {
-  return Math.round(n * 100) / 100;
+  let best: number | null = null;
+  let bestN = 0;
+  for (const [tier, n] of count) {
+    if (n > bestN) {
+      best = tier;
+      bestN = n;
+    }
+  }
+  return best;
 }

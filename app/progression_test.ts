@@ -1,76 +1,91 @@
-// progression_test.ts — pure chart geometry (no DB, no env).
+// progression_test.ts — pure data-shaping (no DB, no env).
 //
 // Run: deno test app/progression_test.ts
 
-import { assertAlmostEquals, assertEquals } from "@std/assert";
-import { buildChart, type Sample } from "./progression.ts";
+import { assertEquals } from "@std/assert";
+import {
+  coinsPerHour,
+  mostFarmedTier,
+  type RunInput,
+  tiersOf,
+  toRunPoints,
+} from "./progression.ts";
 
-const s = (id: number, t: number, value: number, buildId: number | null = null): Sample => ({
-  id,
-  t,
-  value,
-  buildId,
+const run = (over: Partial<RunInput> & { id: number; occurred_at: string }): RunInput => ({
+  tier: null,
+  wave: null,
+  coins: null,
+  duration_s: null,
+  build_id: null,
+  build_label: null,
+  ...over,
 });
 
-Deno.test("buildChart: empty input → empty chart", () => {
-  const c = buildChart([]);
-  assertEquals(c.plotted, []);
-  assertEquals(c.polyline, "");
+// ---------------------------------------------------------------------------
+// coinsPerHour
+// ---------------------------------------------------------------------------
+
+Deno.test("coinsPerHour: coins over a duration", () => {
+  assertEquals(coinsPerHour(100, 3600), 100); // 100 coins in 1h
+  assertEquals(coinsPerHour(100, 1800), 200); // 100 coins in 30m → 200/h
 });
 
-Deno.test("buildChart: sorts ascending by time, then id", () => {
-  const c = buildChart([s(2, 200, 5), s(1, 100, 3), s(3, 100, 4)]);
-  // 100 (id 1), 100 (id 3), 200 (id 2)
-  assertEquals(c.plotted.map((p) => p.id), [1, 3, 2]);
+Deno.test("coinsPerHour: missing inputs or non-positive duration → null", () => {
+  assertEquals(coinsPerHour(null, 3600), null);
+  assertEquals(coinsPerHour(100, null), null);
+  assertEquals(coinsPerHour(100, 0), null);
+  assertEquals(coinsPerHour(100, -5), null);
 });
 
-Deno.test("buildChart: maps time→x and value→y (inverted), within padding", () => {
-  const c = buildChart([s(1, 0, 0), s(2, 100, 10)], { w: 100, h: 100, pad: 10 });
-  const [a, b] = c.plotted;
-  assertEquals(a.cx, 10); // earliest at left pad
-  assertEquals(b.cx, 90); // latest at right edge
-  assertEquals(a.cy, 90); // smallest value sits low (high y)
-  assertEquals(b.cy, 10); // largest value sits high (low y)
-});
+// ---------------------------------------------------------------------------
+// toRunPoints
+// ---------------------------------------------------------------------------
 
-Deno.test("buildChart: single sample is centered horizontally", () => {
-  const c = buildChart([s(1, 500, 7)], { w: 100, h: 100, pad: 10 });
-  assertEquals(c.plotted[0].cx, 50);
-});
-
-Deno.test("buildChart: equal timestamps distribute evenly by index", () => {
-  const c = buildChart([s(1, 50, 1), s(2, 50, 2), s(3, 50, 3)], { w: 100, h: 100, pad: 10 });
-  assertEquals(c.plotted.map((p) => p.cx), [10, 50, 90]);
-});
-
-Deno.test("buildChart: flat series pads the value axis so the line is centered", () => {
-  const c = buildChart([s(1, 0, 5), s(2, 100, 5)], { w: 100, h: 100, pad: 10 });
-  // vMin/vMax padded around 5 → both points at mid-height.
-  assertEquals(c.vMin < 5 && c.vMax > 5, true);
-  assertAlmostEquals(c.plotted[0].cy, 50, 0.01);
-});
-
-Deno.test("buildChart: buildChanged flags only when build differs from previous", () => {
-  const c = buildChart([
-    s(1, 1, 10, 7),
-    s(2, 2, 11, 7), // same build → no change
-    s(3, 3, 12, 8), // changed → marker
-    s(4, 4, 13, 8), // same build → no change
+Deno.test("toRunPoints: sorts ascending by time and computes cph + epoch seconds", () => {
+  const pts = toRunPoints([
+    run({ id: 1, occurred_at: "2026-06-02T00:00:00Z", coins: 7.2e12, duration_s: 3600 }),
+    run({ id: 2, occurred_at: "2026-06-01T00:00:00Z", coins: null, duration_s: 3600 }),
   ]);
-  assertEquals(c.plotted.map((p) => p.buildChanged), [false, false, true, false]);
+  assertEquals(pts.map((p) => p.id), [2, 1]); // earlier first
+  assertEquals(pts[0].cph, null); // no coins → null cph
+  assertEquals(pts[1].cph, 7.2e12); // 7.2T in 1h
+  assertEquals(pts[1].t, Math.floor(Date.parse("2026-06-02T00:00:00Z") / 1000));
 });
 
-Deno.test("buildChart: first sample never flags a build change", () => {
-  const c = buildChart([s(1, 1, 10, 7)]);
-  assertEquals(c.plotted[0].buildChanged, false);
+Deno.test("toRunPoints: carries tier/build through", () => {
+  const [p] = toRunPoints([
+    run({ id: 5, occurred_at: "2026-06-01T00:00:00Z", tier: 12, build_id: 3, build_label: "Farm" }),
+  ]);
+  assertEquals(p.tier, 12);
+  assertEquals(p.buildId, 3);
+  assertEquals(p.buildLabel, "Farm");
 });
 
-Deno.test("buildChart: null build to a real build counts as a change", () => {
-  const c = buildChart([s(1, 1, 10, null), s(2, 2, 11, 5)]);
-  assertEquals(c.plotted.map((p) => p.buildChanged), [false, true]);
+// ---------------------------------------------------------------------------
+// tiersOf / mostFarmedTier
+// ---------------------------------------------------------------------------
+
+Deno.test("tiersOf: distinct tiers ascending, ignoring nulls", () => {
+  const pts = toRunPoints([
+    run({ id: 1, occurred_at: "2026-06-01T00:00:00Z", tier: 12 }),
+    run({ id: 2, occurred_at: "2026-06-02T00:00:00Z", tier: 11 }),
+    run({ id: 3, occurred_at: "2026-06-03T00:00:00Z", tier: 12 }),
+    run({ id: 4, occurred_at: "2026-06-04T00:00:00Z", tier: null }),
+  ]);
+  assertEquals(tiersOf(pts), [11, 12]);
 });
 
-Deno.test("buildChart: polyline matches plotted coordinates", () => {
-  const c = buildChart([s(1, 0, 0), s(2, 100, 10)], { w: 100, h: 100, pad: 10 });
-  assertEquals(c.polyline, "10,90 90,10");
+Deno.test("mostFarmedTier: the tier with the most wave-bearing runs", () => {
+  const pts = toRunPoints([
+    run({ id: 1, occurred_at: "2026-06-01T00:00:00Z", tier: 11, wave: 8000 }),
+    run({ id: 2, occurred_at: "2026-06-02T00:00:00Z", tier: 12, wave: 4500 }),
+    run({ id: 3, occurred_at: "2026-06-03T00:00:00Z", tier: 11, wave: 8100 }),
+    run({ id: 4, occurred_at: "2026-06-04T00:00:00Z", tier: 11, wave: null }), // no wave → ignored
+  ]);
+  assertEquals(mostFarmedTier(pts), 11);
+});
+
+Deno.test("mostFarmedTier: null when no wave-bearing runs", () => {
+  const pts = toRunPoints([run({ id: 1, occurred_at: "2026-06-01T00:00:00Z", tier: 11 })]);
+  assertEquals(mostFarmedTier(pts), null);
 });

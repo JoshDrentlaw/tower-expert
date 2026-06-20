@@ -33,7 +33,10 @@
 
   "progression.view": "Progreso",
   "progression.backToList": "Todas las runs",
-  "progression.lead": "Cada run graficada en el tiempo. La línea punteada marca dónde cambió tu build activo respecto a la run anterior — así ves si reasignar movió la tendencia.",
+  "progression.lead": "Cada run graficada en el tiempo. Pasa el cursor por un punto para ver su run, tier y build. La línea punteada marca dónde cambió tu build activo respecto a la run anterior — así ves si reasignar movió la tendencia.",
+  "progression.cph": "Monedas / Hora",
+  "progression.cphNote": "El KPI de farmeo comparable entre tiers — monedas ganadas por hora de run.",
+  "progression.waveNote": "La wave no es comparable entre tiers, así que elige un tier para ver su tendencia.",
   "progression.summary": "{metric} en {n} runs, {from} → {to}.",
   "progression.markerNote": "{n} cambio(s) de build marcados.",
   "progression.noData": "Todavía no hay runs con este dato.",
