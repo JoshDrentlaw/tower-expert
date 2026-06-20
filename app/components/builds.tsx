@@ -63,6 +63,10 @@ export interface BuildFormOpts {
   // Field names (`${cat.key}.${field.key}`) that failed to parse — marked
   // aria-invalid and pointed at the error banner.
   invalidKeys?: string[];
+  // When "log", saving this build redirects to the log-run form with this build
+  // preselected (the build-change → log-run round-trip). Carried as a hidden
+  // field so it survives POST + validation re-renders.
+  then?: string;
 }
 
 export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: BuildFormOpts }) {
@@ -102,6 +106,7 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
     <>
       <form method="post" action={action} data-highlight-changes={highlight ? "1" : undefined}>
         {isEdit ? null : <input type="hidden" name="parent_build_id" value={String(parentId)} />}
+        {opts.then ? <input type="hidden" name="then" value={opts.then} /> : null}
         {opts.error
           ? <p id="form-error" class="hint" style="color:var(--error)" role="alert">{opts.error}</p>
           : null}

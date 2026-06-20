@@ -31,17 +31,58 @@ export function ReportForm(
   { ctx, builds, opts = {} }: {
     ctx: RequestContext;
     builds: Build[];
-    opts?: { raw?: string; buildId?: string | number; error?: string };
+    opts?: { raw?: string; buildId?: string | number; error?: string; justSaved?: boolean };
   },
 ) {
   const { base, t } = ctx;
-  const selectedBuildId = opts.buildId != null ? String(opts.buildId) : "";
+  // Builds arrive newest-first; default a run to the latest build so it stops
+  // landing as "no build". An explicit ?build= (the round-trip) wins.
+  const latest = builds[0];
+  const selectedBuildId = opts.buildId != null
+    ? String(opts.buildId)
+    : (latest ? String(latest.id) : "");
   return (
     <form method="post" action={`${base}/reports`}>
       {opts.error
         ? <p id="form-error" class="hint" style="color:var(--error)" role="alert">{opts.error}</p>
         : null}
+      {opts.justSaved
+        ? (
+          <p class="hint" style="color:var(--accent-text)" role="status">
+            {t("reportForm.buildUpdated")}
+          </p>
+        )
+        : null}
       <p class="hint">{t("reportForm.hint")}</p>
+      {
+        /* Build-change prompt: keep each run tied to the stats that produced it.
+          If you reallocated since your last run, update/respec first — that
+          round-trips back here with the new build preselected. */
+      }
+      {latest
+        ? (
+          <div class="build-prompt">
+            <p class="hint">
+              {t("reportForm.buildChangeQ", { label: `#${latest.id} ${latest.label}` })}
+            </p>
+            <div class="build-prompt-actions">
+              <a class="btn" href={`${base}/builds/${latest.id}/edit?then=log`}>
+                {t("reportForm.leveledUp")}
+              </a>
+              <a class="btn" href={`${base}/builds/new?from=${latest.id}&then=log`}>
+                {t("reportForm.respecced")}
+              </a>
+            </div>
+          </div>
+        )
+        : (
+          <p class="hint">
+            {t("reportForm.noBuildYet")}{" "}
+            <a href={`${base}/builds/new?then=log`} style="color:var(--accent-text)">
+              {t("reportForm.createBuild")}
+            </a>
+          </p>
+        )}
       <div class="meta">
         <div>
           <label for="build_id">{t("reportForm.buildOptional")}</label>

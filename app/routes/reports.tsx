@@ -51,12 +51,20 @@ export async function handleReportProgression(ctx: RequestContext): Promise<Resp
   );
 }
 
-export async function handleReportNew(ctx: RequestContext): Promise<Response> {
+export async function handleReportNew(ctx: RequestContext, url: URL): Promise<Response> {
   const builds = await listBuilds();
+  // ?build=<id> arrives from the build-change round-trip (just updated/respecced
+  // a build, now logging the run against it) — preselect it and confirm.
+  const buildRaw = url.searchParams.get("build");
+  const buildId = buildRaw && /^\d+$/.test(buildRaw) ? Number(buildRaw) : undefined;
   return page(
     ctx,
     ctx.t("title.logRun"),
-    <ReportForm ctx={ctx} builds={builds} />,
+    <ReportForm
+      ctx={ctx}
+      builds={builds}
+      opts={buildId ? { buildId, justSaved: true } : {}}
+    />,
     200,
     ctx.t("heading.logRun"),
   );

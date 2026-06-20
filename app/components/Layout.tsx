@@ -63,6 +63,10 @@ const STYLE = `
     border-radius: 6px; cursor: pointer; }
   .tier-tab[aria-pressed="true"] { color: var(--accent-text); border-color: var(--accent-text); }
   .uplot { font-family: var(--body); }
+  .build-prompt { border: 1px solid var(--line); border-left: 3px solid var(--accent-text);
+    border-radius: 8px; background: var(--panel); padding: .6rem .8rem; margin: 0 0 1rem; }
+  .build-prompt .hint { margin: 0 0 .5rem; }
+  .build-prompt-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
   label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .25rem;
     font-family: var(--body); }
   input, select, textarea {
