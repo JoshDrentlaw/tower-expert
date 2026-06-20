@@ -6,6 +6,7 @@
 import { formatNum, type NumUnit } from "../num_format.ts";
 import type { Category, Field as SchemaField, FieldType } from "../stat_schema.ts";
 import { type Formula, levelFromValue } from "../stat_formula.ts";
+import { findModule, modulesByType, type ModuleType } from "../module_catalog.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import type { TFunc } from "../i18n/index.ts";
 
@@ -183,25 +184,77 @@ function labelledField(
   );
 }
 
-// Render a module column's fields. A substat slot is a `_sub<n>_rarity` select
-// followed by its `_sub<n>_type` effect select and `_sub<n>_val` text input —
-// render all three as one row under a single "Substat N" label (mirroring the
-// in-game card: rarity pill, effect, value).
+// A module's Name field: a free-text input backed by a <datalist> of the named
+// modules for its type (Cannon/Armor/…), plus a derived block showing the chosen
+// module's Main Effect stat and Unique Effect — auto-filled from the catalog so
+// the player never types them. The companion script (module_autofill.ts) keeps
+// the derived block in sync as the name changes; this is its server-rendered
+// initial state. Unknown/custom names simply show nothing (manual entry).
+function moduleNameField(
+  ctx: RequestContext,
+  cat: Category,
+  type: ModuleType,
+  f: SchemaField,
+  catData: Record<string, unknown>,
+) {
+  const id = `${cat.key}.${f.key}`;
+  const listId = `mods-${type}`;
+  const value = catData[f.key];
+  const current = typeof value === "string" ? value : "";
+  const mod = findModule(current);
+  const label = statLabel(ctx.t, cat.key, f.key, f.label);
+  const mainLabel = ctx.t("buildForm.moduleMainEffect", { default: "Main effect" });
+  return (
+    <div>
+      <label for={id}>{label}</label>
+      <input
+        id={id}
+        name={id}
+        type="text"
+        list={listId}
+        autocomplete="off"
+        value={current}
+        data-module-name
+        data-derived={`${id}__derived`}
+      />
+      <datalist id={listId}>
+        {modulesByType(type).map((m) => <option value={m.name} />)}
+      </datalist>
+      <div class="mod-derived" id={`${id}__derived`}>
+        <div class="mod-main">{mod?.mainEffect ? `${mainLabel}: ${mod.mainEffect}` : ""}</div>
+        <div class="mod-uniq">{mod?.unique ?? ""}</div>
+      </div>
+    </div>
+  );
+}
+
+// Render a module column's fields. The leading `_name` field becomes a catalog
+// picker (datalist + derived effects); the six substat slots — each a
+// `_sub<n>_rarity` + `_sub<n>_type` + `_sub<n>_val` triple — fold into one
+// "Substat N" row and collapse into an optional <details> (substats are rolled
+// noise for progression, so they're tucked away). Remaining head fields (rarity,
+// level, main-effect value) render normally.
 function groupFieldRows(
   ctx: RequestContext,
   cat: Category,
+  groupKey: string,
   fields: SchemaField[],
   catData: Record<string, unknown>,
   invalid?: Set<string>,
 ) {
   const out = [];
+  const substats = [];
   for (let i = 0; i < fields.length; i++) {
     const f = fields[i];
+    if (f.key.endsWith("_name")) {
+      out.push(moduleNameField(ctx, cat, groupKey as ModuleType, f, catData));
+      continue;
+    }
     const type = fields[i + 1];
     const val = fields[i + 2];
     if (/_sub\d+_rarity$/.test(f.key) && type && val) {
       const rowLabel = statLabel(ctx.t, cat.key, f.key, f.label);
-      out.push(
+      substats.push(
         <div>
           <label for={`${cat.key}.${f.key}`}>{rowLabel}</label>
           <div class="substat-row">
@@ -234,6 +287,18 @@ function groupFieldRows(
       out.push(labelledField(ctx, cat, f, catData, invalid));
     }
   }
+  if (substats.length > 0) {
+    // Open the collapse if any substat already holds data, so existing builds
+    // don't hide their rolls.
+    const filled = substats.length > 0 &&
+      fields.some((f) => /_sub\d+_/.test(f.key) && hasValue(catData[f.key]));
+    out.push(
+      <details class="substats" open={filled}>
+        <summary>{ctx.t("buildForm.substats", { default: "Substats (optional)" })}</summary>
+        {substats}
+      </details>,
+    );
+  }
   return out;
 }
 
@@ -263,7 +328,7 @@ function GroupedBody(
         return (
           <div class="mod-col">
             <div class="col-hdr">{t(`mod.${k}`, { default: g.label })}</div>
-            {groupFieldRows(ctx, cat, g.fields, catData, invalid)}
+            {groupFieldRows(ctx, cat, k, g.fields, catData, invalid)}
           </div>
         );
       })}

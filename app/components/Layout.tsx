@@ -115,6 +115,15 @@ const STYLE = `
     letter-spacing: .03em; }
   .max-btn:hover { border-color: var(--accent-text); }
   .section-tools { display: flex; justify-content: flex-end; margin-bottom: .6rem; }
+  .mod-derived:empty { display: none; }
+  .mod-derived { margin: .15rem 0 .35rem; }
+  .mod-main { font-size: .72rem; color: var(--accent-dim); font-family: var(--mono); }
+  .mod-main:empty { display: none; }
+  .mod-uniq { font-size: .74rem; color: var(--muted); line-height: 1.35; }
+  .mod-uniq:empty { display: none; }
+  details.substats { margin: .35rem 0 .25rem; }
+  details.substats > summary { font-family: var(--mono); font-size: .7rem; letter-spacing: .03em;
+    text-transform: uppercase; color: var(--accent-dim); cursor: pointer; padding: .25rem 0; }
   .substat-row { display: flex; gap: .4rem; align-items: center; }
   .substat-row > * { min-width: 0; }
   .substat-row select:nth-of-type(1) { flex: 1.6; }  /* rarity pill */

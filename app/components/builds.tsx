@@ -12,6 +12,8 @@ import { Onboard } from "./onboard.tsx";
 import { AUTOSAVE_JS } from "./draft_autosave.ts";
 import { HIGHLIGHT_JS } from "./changed_highlight.ts";
 import { LEVEL_COMPUTE_JS } from "./level_compute.ts";
+import { MODULE_AUTOFILL_JS } from "./module_autofill.ts";
+import { findModule, MODULE_CATALOG } from "../module_catalog.ts";
 
 // Inline client-side draft autosave for the build form (the app's only client
 // JS). Banner strings are passed via window.__draftI18n so they stay
@@ -28,6 +30,23 @@ function DraftAutosave({ ctx }: { ctx: RequestContext }) {
       <script dangerouslySetInnerHTML={{ __html: `window.__draftI18n=${i18n};` }} />
       <script dangerouslySetInnerHTML={{ __html: AUTOSAVE_JS }} />
     </>
+  );
+}
+
+// Serialize the named-module catalog + its one label to the client so
+// module_autofill.ts can fill a module's Main/Unique Effect from its name. JSON
+// is `<`-escaped so catalog text can't break out of the <script>.
+function ModuleCatalog({ ctx }: { ctx: RequestContext }) {
+  const data = JSON.stringify(MODULE_CATALOG).replace(/</g, "\\u003c");
+  const i18n = JSON.stringify({
+    mainLabel: ctx.t("buildForm.moduleMainEffect", { default: "Main effect" }),
+  }).replace(/</g, "\\u003c");
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `window.__moduleCatalog=${data};window.__moduleI18n=${i18n};`,
+      }}
+    />
   );
 }
 
@@ -122,6 +141,8 @@ export function BuildForm({ ctx, opts = {} }: { ctx: RequestContext; opts?: Buil
       <DraftAutosave ctx={ctx} />
       <script dangerouslySetInnerHTML={{ __html: HIGHLIGHT_JS }} />
       <script dangerouslySetInnerHTML={{ __html: LEVEL_COMPUTE_JS }} />
+      <ModuleCatalog ctx={ctx} />
+      <script dangerouslySetInnerHTML={{ __html: MODULE_AUTOFILL_JS }} />
     </>
   );
 }
@@ -259,6 +280,14 @@ function DetailSection(
         ? `${t(`mod.${f.group.key}`, { default: f.group.label })} — ${base}`
         : base;
       row(label, v, !!changed && changed.has(`${cat.key}.${f.key}`));
+      // For a catalogued module Name, surface its fixed Unique Effect (derived,
+      // not stored) right under the name.
+      if (f.key.endsWith("_name")) {
+        const mod = findModule(typeof catData[f.key] === "string" ? catData[f.key] as string : "");
+        if (mod) {
+          row(t("buildDetail.uniqueEffect"), mod.unique, false);
+        }
+      }
     }
     if (f.enhancement) {
       const ev = displayValue(ctx.fmt, f.enhancement, catData[f.enhancement.key]);
