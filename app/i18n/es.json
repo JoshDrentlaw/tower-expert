@@ -61,6 +61,12 @@
   "buildForm.maxAll": "Todo al máx",
   "buildForm.substats": "Substats (opcional)",
   "buildForm.moduleMainEffect": "Efecto principal",
+  "reportForm.buildChangeQ": "Registrando con {label}. ¿Cambió tu build desde tu última run? Liga esta run a los stats que la produjeron:",
+  "reportForm.leveledUp": "Subí de nivel →",
+  "reportForm.respecced": "Hice respec →",
+  "reportForm.buildUpdated": "Build guardado — ahora registra tu run con él. ✓",
+  "reportForm.noBuildYet": "Aún no hay builds.",
+  "reportForm.createBuild": "Haz un snapshot de tu build primero →",
   "buildForm.shorthandHint": "Ingresa los valores como los muestra el juego — p. ej. 869.03M, 56.4%, ×1.012, 14s. Importa la mayúscula del sufijo: q (mil billones) ≠ Q (trillón).",
 
   "draft.prompt": "Tienes un borrador sin guardar en este formulario.",
