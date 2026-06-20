@@ -93,9 +93,12 @@ export interface BattleReport {
 }
 
 export function listReports(): Promise<BattleReport[]> {
+  // coins is a numeric column; postgres.js returns numeric as a *string* (to
+  // avoid precision loss), but the formatter and charts expect a JS number — so
+  // cast to float8. (int columns like tier/wave already come back as numbers.)
   return sql<BattleReport[]>`
     select r.id, r.build_id, b.label as build_label,
-           r.occurred_at, r.tier, r.wave, r.coins, r.duration_s, r.created_at,
+           r.occurred_at, r.tier, r.wave, r.coins::float8 as coins, r.duration_s, r.created_at,
            (abs(extract(epoch from (r.occurred_at - r.created_at))) < 10) as date_inferred
     from battle_reports r
     left join builds b on b.id = r.build_id
@@ -106,7 +109,7 @@ export function listReports(): Promise<BattleReport[]> {
 export async function getReport(id: number): Promise<BattleReport | undefined> {
   const rows = await sql<BattleReport[]>`
     select r.id, r.build_id, b.label as build_label,
-           r.occurred_at, r.tier, r.wave, r.coins, r.duration_s,
+           r.occurred_at, r.tier, r.wave, r.coins::float8 as coins, r.duration_s,
            r.parsed, r.raw, r.created_at,
            (abs(extract(epoch from (r.occurred_at - r.created_at))) < 10) as date_inferred
     from battle_reports r
