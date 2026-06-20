@@ -13,6 +13,7 @@ export interface RunInput {
   tier: number | null;
   wave: number | null;
   coins: number | null;
+  cells: number | null;
   duration_s: number | null;
   build_id: number | null;
   build_label?: string | null;
@@ -28,14 +29,20 @@ export interface RunPoint {
   wave: number | null;
   coins: number | null;
   cph: number | null; // coins per hour — the tier-comparable farming KPI
+  cells: number | null;
+  celph: number | null; // cells per hour — the other tier-comparable KPI
 }
 
-// Coins earned per hour of real run time. null when either input is missing or
-// the duration is non-positive (avoids divide-by-zero / Infinity).
-export function coinsPerHour(coins: number | null, durationS: number | null): number | null {
-  if (coins == null || durationS == null || durationS <= 0) return null;
-  return coins / (durationS / 3600);
+// Value earned per hour of real run time. null when either input is missing or
+// the duration is non-positive (avoids divide-by-zero / Infinity). Used for both
+// coins/hour and cells/hour.
+export function perHour(value: number | null, durationS: number | null): number | null {
+  if (value == null || durationS == null || durationS <= 0) return null;
+  return value / (durationS / 3600);
 }
+
+// Back-compat alias.
+export const coinsPerHour = perHour;
 
 // Reports → chart points, sorted ascending by time (stable on id for ties).
 export function toRunPoints(reports: RunInput[]): RunPoint[] {
@@ -48,7 +55,9 @@ export function toRunPoints(reports: RunInput[]): RunPoint[] {
       buildLabel: r.build_label ?? null,
       wave: r.wave,
       coins: r.coins,
-      cph: coinsPerHour(r.coins, r.duration_s),
+      cph: perHour(r.coins, r.duration_s),
+      cells: r.cells,
+      celph: perHour(r.cells, r.duration_s),
     }))
     .sort((a, b) => a.t - b.t || a.id - b.id);
 }

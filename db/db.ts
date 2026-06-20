@@ -5,6 +5,7 @@
 // swap this out for consistency — nothing else here depends on the choice.
 
 import postgres from "postgres";
+import { expandNumber } from "../app/report_parser.ts";
 
 const url = Deno.env.get("DATABASE_URL");
 if (!url) throw new Error("DATABASE_URL is not set");
@@ -86,36 +87,49 @@ export interface BattleReport {
   tier: number | null;
   wave: number | null;
   coins: number | null;
+  cells: number | null; // expanded from parsed battle_report["Cells Earned"] on read (no column)
   duration_s: number | null;
   parsed: Record<string, Record<string, string>>;
   raw: string | null;
   created_at: string;
 }
 
-export function listReports(): Promise<BattleReport[]> {
+// "Cells Earned" lives only in the parsed jsonb (no promoted column). Pull the
+// raw magnitude string in SQL and expand it to a number in JS (same suffixes as
+// coins), so there's no migration. cells_raw never escapes this layer.
+type ReportRow = BattleReport & { cells_raw?: string | null };
+function withCells(r: ReportRow): BattleReport {
+  const { cells_raw, ...rest } = r;
+  return { ...rest, cells: cells_raw ? expandNumber(cells_raw) : null };
+}
+
+export async function listReports(): Promise<BattleReport[]> {
   // coins is a numeric column; postgres.js returns numeric as a *string* (to
   // avoid precision loss), but the formatter and charts expect a JS number — so
   // cast to float8. (int columns like tier/wave already come back as numbers.)
-  return sql<BattleReport[]>`
+  const rows = await sql<ReportRow[]>`
     select r.id, r.build_id, b.label as build_label,
            r.occurred_at, r.tier, r.wave, r.coins::float8 as coins, r.duration_s, r.created_at,
+           r.parsed->'battle_report'->>'Cells Earned' as cells_raw,
            (abs(extract(epoch from (r.occurred_at - r.created_at))) < 10) as date_inferred
     from battle_reports r
     left join builds b on b.id = r.build_id
     order by r.occurred_at desc
     limit 100`;
+  return rows.map(withCells);
 }
 
 export async function getReport(id: number): Promise<BattleReport | undefined> {
-  const rows = await sql<BattleReport[]>`
+  const rows = await sql<ReportRow[]>`
     select r.id, r.build_id, b.label as build_label,
            r.occurred_at, r.tier, r.wave, r.coins::float8 as coins, r.duration_s,
            r.parsed, r.raw, r.created_at,
+           r.parsed->'battle_report'->>'Cells Earned' as cells_raw,
            (abs(extract(epoch from (r.occurred_at - r.created_at))) < 10) as date_inferred
     from battle_reports r
     left join builds b on b.id = r.build_id
     where r.id = ${id}`;
-  return rows[0];
+  return rows[0] ? withCells(rows[0]) : undefined;
 }
 
 export async function insertBattleReport(r: {

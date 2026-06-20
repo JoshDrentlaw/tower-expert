@@ -103,6 +103,13 @@ export const PROGRESSION_JS = `
       function (p) { return p.cph; }, fmtMag, i18n.cph || "Coins / Hour");
   }
 
+  // --- Cells / Hour ---
+  var celph = document.getElementById("chart-celph");
+  if (celph) {
+    makeChart(celph, P.points.filter(function (p) { return p.celph != null; }),
+      function (p) { return p.celph; }, fmtMag, i18n.celph || "Cells / Hour");
+  }
+
   // --- Wave, with a tier selector (wave isn't comparable across tiers) ---
   var waveEl = document.getElementById("chart-wave");
   var tabs = document.getElementById("wave-tiers");

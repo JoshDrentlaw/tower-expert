@@ -37,6 +37,7 @@
   "progression.backToList": "All runs",
   "progression.lead": "Each run plotted over time. Hover a point for its run, tier, and build. A dashed line marks where your active build changed from the previous run — so you can see whether a reallocation moved the trend.",
   "progression.cph": "Coins / Hour",
+  "progression.celph": "Cells / Hour",
   "progression.cphNote": "The tier-comparable farming KPI — coins earned per hour of run time.",
   "progression.waveNote": "Wave isn't comparable across tiers, so pick a tier to see its trend.",
   "progression.summary": "{metric} across {n} runs, {from} → {to}.",
