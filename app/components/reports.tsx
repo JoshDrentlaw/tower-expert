@@ -163,6 +163,7 @@ export function ReportsProgression(
     defaultTier,
     i18n: {
       cph: t("progression.cph"),
+      celph: t("progression.celph"),
       wave: t("reportsList.thWave"),
       coins: t("reportsList.thCoins"),
       tier: t("reportsList.thTier"),
@@ -182,6 +183,10 @@ export function ReportsProgression(
         <figcaption>{t("progression.cph")}</figcaption>
         <p class="hint">{t("progression.cphNote")}</p>
         <div id="chart-cph" class="uchart"></div>
+      </figure>
+      <figure class="chart">
+        <figcaption>{t("progression.celph")}</figcaption>
+        <div id="chart-celph" class="uchart"></div>
       </figure>
       <figure class="chart">
         <figcaption>{t("reportsList.thWave")}</figcaption>

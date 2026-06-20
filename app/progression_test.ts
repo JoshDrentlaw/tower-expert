@@ -15,6 +15,7 @@ const run = (over: Partial<RunInput> & { id: number; occurred_at: string }): Run
   tier: null,
   wave: null,
   coins: null,
+  cells: null,
   duration_s: null,
   build_id: null,
   build_label: null,
@@ -50,6 +51,14 @@ Deno.test("toRunPoints: sorts ascending by time and computes cph + epoch seconds
   assertEquals(pts[0].cph, null); // no coins → null cph
   assertEquals(pts[1].cph, 7.2e12); // 7.2T in 1h
   assertEquals(pts[1].t, Math.floor(Date.parse("2026-06-02T00:00:00Z") / 1000));
+});
+
+Deno.test("toRunPoints: computes cells/hour alongside coins/hour", () => {
+  const [p] = toRunPoints([
+    run({ id: 1, occurred_at: "2026-06-01T00:00:00Z", cells: 5000, duration_s: 1800 }),
+  ]);
+  assertEquals(p.cells, 5000);
+  assertEquals(p.celph, 10000); // 5000 cells in 30m → 10000/h
 });
 
 Deno.test("toRunPoints: carries tier/build through", () => {
