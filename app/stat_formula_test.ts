@@ -76,14 +76,35 @@ Deno.test("levelFromValue: zero increment has no inverse → null", () => {
 
 // Keyed `<cat>.<field>` → expected value at maxLevel.
 const EXPECTED_MAX: Record<string, number> = {
+  // Attack
   "workshop_attack.attack_speed": 5.95,
   "workshop_attack.crit_chance": 80,
   "workshop_attack.crit_factor": 16.2,
   "workshop_attack.multishot_chance": 49.5,
   "workshop_attack.multishot_targets": 9,
+  "workshop_attack.super_crit_chance": 20,
+  "workshop_attack.super_crit_multi": 13.2,
   "workshop_attack.damage_enh": 5,
   "workshop_attack.attack_speed_enh": 1.75,
   "workshop_attack.crit_factor_enh": 5,
+  "workshop_attack.damage_per_meter_enh": 5,
+  "workshop_attack.super_crit_multi_enh": 5,
+  // Defense
+  "workshop_defense.defense_percent": 49.5,
+  "workshop_defense.knockback_chance": 80,
+  "workshop_defense.knockback_force": 6.08,
+  "workshop_defense.orb_speed": 6.1,
+  "workshop_defense.death_defy": 30,
+  "workshop_defense.health_enh": 5,
+  "workshop_defense.health_regen_enh": 5,
+  "workshop_defense.orb_size_enh": 3,
+  // Utility
+  "workshop_utility.cash_bonus": 2.49,
+  "workshop_utility.interest": 5.94,
+  "workshop_utility.free_attack": 49.5,
+  "workshop_utility.free_defense": 49.5,
+  "workshop_utility.free_utility": 49.5,
+  "workshop_utility.coin_bonus_enh": 3,
 };
 
 Deno.test("STAT_SCHEMA: every formula's value(maxLevel) matches the documented max", () => {
