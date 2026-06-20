@@ -51,6 +51,18 @@ const STYLE = `
   .chart figcaption { font-family: var(--mono); font-size: .78rem; letter-spacing: .05em;
     text-transform: uppercase; color: var(--accent-text); margin-bottom: .4rem; }
   .chart svg { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .uchart { position: relative; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: .5rem .25rem .25rem; }
+  .uchart-tip { position: absolute; z-index: 5; pointer-events: none; transform: translate(-50%, -110%);
+    background: var(--bg); border: 1px solid var(--accent-text); border-radius: 6px;
+    padding: .3rem .45rem; font-size: .72rem; line-height: 1.3; white-space: nowrap;
+    color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+  .tier-tabs { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .5rem; }
+  .tier-tab { padding: .3rem .6rem; font-size: .74rem; font-family: var(--mono);
+    background: var(--field-bg); color: var(--muted); border: 1px solid var(--line);
+    border-radius: 6px; cursor: pointer; }
+  .tier-tab[aria-pressed="true"] { color: var(--accent-text); border-color: var(--accent-text); }
+  .uplot { font-family: var(--body); }
   label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .25rem;
     font-family: var(--body); }
   input, select, textarea {
