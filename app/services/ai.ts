@@ -43,6 +43,23 @@ export interface AnalyzeResult {
   model: string;
 }
 
+// The player's optimization goal, stated in the UI. "auto" (the absence of a
+// value) leaves the model to infer it from the data.
+export type Goal = "farming" | "pushing";
+
+export interface AnalyzeOptions {
+  goal?: Goal;
+  question?: string;
+}
+
+// Max length for the free-form question. The user pays for their own tokens,
+// but a cap keeps the prompt sane and bounds abuse.
+export const MAX_QUESTION_LEN = 2000;
+
+export function isGoal(v: unknown): v is Goal {
+  return v === "farming" || v === "pushing";
+}
+
 const SYSTEM =
   `You are an expert player and theorycrafter for the mobile idle game "The Tower: Idle Tower Defense". \
 You give specific, actionable advice on builds and how they perform in runs.
@@ -53,15 +70,17 @@ Two things shape every answer:
    - Economy / farming: maximizing coins and cells per hour, usually at a tier the player can sustain.
    - Milestone / pushing: reaching the highest possible tier and wave, where survival (defense, health, \
 regen) is the binding constraint.
-   Infer the likely goal from the data — a sustained lower tier with high coins/hour suggests farming; \
-dying at a wall on a high tier suggests pushing. If it's genuinely ambiguous, state which goal you're \
-assuming, or split your advice by goal.
+   If the player states a goal below, optimize for it. Otherwise infer it from the data — a sustained \
+lower tier with high coins/hour suggests farming; dying at a wall on a high tier suggests pushing; if \
+it's genuinely ambiguous, state which goal you're assuming.
 
 2. The build–run relationship. The build is the input (what the player invested in); a run is the outcome \
 (tier and wave reached, coins and cells earned, run duration, what killed them). When run data is \
 provided, treat it as the feedback signal: judge the build by what its runs actually produced and find \
 the bottleneck they reveal (died early to a specific wave; coins/hour flat despite more investment). When \
 no run is provided, reason from the build alone and note that linking a recent run would sharpen the read.
+
+If the player asks a specific question below, lead with a direct answer to it, then give the read below.
 
 Respond with:
 - A short read on what the build is optimized for and how well it's meeting that goal.
@@ -131,6 +150,22 @@ function renderRuns(reports: BattleReport[], header: string): string {
   return [header, ...reports.map((r) => `  - ${runLine(r)}`)].join("\n");
 }
 
+// Stated goal + question, prepended to the prompt. Trailing blank line when
+// non-empty so it reads as its own paragraph. Pure; [] when nothing stated.
+function preamble(opts: AnalyzeOptions): string[] {
+  const lines: string[] = [];
+  if (opts.goal === "farming") {
+    lines.push("Player's stated goal: economy / farming (maximize coins and cells per hour).");
+  } else if (opts.goal === "pushing") {
+    lines.push(
+      "Player's stated goal: milestone / pushing (reach the highest possible tier and wave).",
+    );
+  }
+  if (opts.question) lines.push(`The player asks: ${opts.question}`);
+  if (lines.length) lines.push("");
+  return lines;
+}
+
 // Render a build's stats block for a prompt.
 function buildBlock(build: Build): string[] {
   return [
@@ -175,9 +210,11 @@ export function analyzeBuild(
   model: string,
   build: Build,
   reports: BattleReport[] = [],
+  opts: AnalyzeOptions = {},
 ): Promise<AnalyzeResult> {
   const runs = renderRuns(reports, "Recent runs on this build (newest first):");
   const userText = [
+    ...preamble(opts),
     ...buildBlock(build),
     ...(runs ? ["", runs] : []),
   ].join("\n");
@@ -192,10 +229,12 @@ export function analyzeReport(
   report: BattleReport,
   build: Build | undefined,
   reports: BattleReport[] = [],
+  opts: AnalyzeOptions = {},
 ): Promise<AnalyzeResult> {
   const others = reports.filter((r) => r.id !== report.id);
   const trend = renderRuns(others, "Other recent runs on this build (newest first):");
   const userText = [
+    ...preamble(opts),
     `This run: ${runLine(report)}`,
     "",
     ...(build ? buildBlock(build) : ["(This run isn't linked to a saved build.)"]),

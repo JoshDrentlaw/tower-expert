@@ -141,6 +141,12 @@
   "ai.copyText": "Copiar como texto",
   "ai.copied": "Copiado",
   "ai.copyFailed": "No se pudo copiar",
+  "ai.goalLabel": "Objetivo de optimización",
+  "ai.goalAuto": "Detectar objetivo",
+  "ai.goalFarming": "Farmeo (economía)",
+  "ai.goalPushing": "Empujar (milestone)",
+  "ai.questionLabel": "Haz una pregunta específica (opcional)",
+  "ai.questionPlaceholder": "Pregunta algo específico (opcional) — p. ej. ¿por qué muero en la oleada 3500?",
 
   "ai.error.noKey": "Agrega tu clave de API de Anthropic para usar el análisis.",
   "ai.error.badRequest": "Solicitud mal formada.",

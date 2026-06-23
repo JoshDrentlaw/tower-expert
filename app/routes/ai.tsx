@@ -13,10 +13,13 @@ import type { RequestContext } from "../services/ctx.ts";
 import {
   AiError,
   analyzeBuild,
+  type AnalyzeOptions,
   analyzeReport,
   type AnalyzeResult,
   DEFAULT_MODEL,
   isAllowedModel,
+  isGoal,
+  MAX_QUESTION_LEN,
 } from "../services/ai.ts";
 
 function json(body: unknown, status = 200): Response {
@@ -36,7 +39,7 @@ export async function handleAiAnalyze(ctx: RequestContext, req: Request): Promis
     return err(ctx, "ai.error.noKey", "Add your Anthropic API key to use analysis.", 400);
   }
 
-  let body: { kind?: unknown; id?: unknown; model?: unknown };
+  let body: { kind?: unknown; id?: unknown; model?: unknown; goal?: unknown; question?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -51,6 +54,13 @@ export async function handleAiAnalyze(ctx: RequestContext, req: Request): Promis
   const model = typeof body.model === "string" && isAllowedModel(body.model)
     ? body.model
     : DEFAULT_MODEL;
+  const question = typeof body.question === "string"
+    ? body.question.trim().slice(0, MAX_QUESTION_LEN)
+    : "";
+  const opts: AnalyzeOptions = {
+    goal: isGoal(body.goal) ? body.goal : undefined,
+    question: question || undefined,
+  };
 
   try {
     let result: AnalyzeResult;
@@ -59,7 +69,7 @@ export async function handleAiAnalyze(ctx: RequestContext, req: Request): Promis
       if (!build) return err(ctx, "ai.error.notFound", "Not found.", 404);
       // The build's recent runs are the feedback signal the analysis reasons over.
       const reports = await listReportsForBuild(id);
-      result = await analyzeBuild(apiKey, model, build, reports);
+      result = await analyzeBuild(apiKey, model, build, reports, opts);
     } else {
       const report = await getReport(id);
       if (!report) return err(ctx, "ai.error.notFound", "Not found.", 404);
@@ -67,7 +77,7 @@ export async function handleAiAnalyze(ctx: RequestContext, req: Request): Promis
       // build's other recent runs for trend.
       const build = report.build_id ? await getBuild(report.build_id) : undefined;
       const reports = report.build_id ? await listReportsForBuild(report.build_id) : [];
-      result = await analyzeReport(apiKey, model, report, build, reports);
+      result = await analyzeReport(apiKey, model, report, build, reports, opts);
     }
     if (!result.text) {
       return err(ctx, "ai.error.empty", "The model returned no analysis. Try again.", 502);

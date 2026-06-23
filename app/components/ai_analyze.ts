@@ -25,6 +25,7 @@ export const AI_ANALYZE_JS = `
 
   var KEY = "tower:ai:key";
   var MODEL_KEY = "tower:ai:model";
+  var GOAL_KEY = "tower:ai:goal";
   var keyForm = root.querySelector("[data-ai-keyform]");
   var ready = root.querySelector("[data-ai-ready]");
   var keyInput = root.querySelector("[data-ai-keyinput]");
@@ -32,6 +33,8 @@ export const AI_ANALYZE_JS = `
   var runBtn = root.querySelector("[data-ai-run]");
   var forgetBtn = root.querySelector("[data-ai-forget]");
   var modelSel = root.querySelector("[data-ai-model]");
+  var goalSel = root.querySelector("[data-ai-goal]");
+  var questionEl = root.querySelector("[data-ai-question]");
   var keyHint = root.querySelector("[data-ai-keyhint]");
   var output = root.querySelector("[data-ai-output]");
   var saveErr = root.querySelector("[data-ai-keyerror]");
@@ -157,6 +160,20 @@ export const AI_ANALYZE_JS = `
     });
   }
 
+  // Persist the goal choice too (the question is per-analysis, so it isn't).
+  if (goalSel) {
+    var savedGoal;
+    try { savedGoal = localStorage.getItem(GOAL_KEY); } catch (e) { savedGoal = null; }
+    if (savedGoal) {
+      for (var gi = 0; gi < goalSel.options.length; gi++) {
+        if (goalSel.options[gi].value === savedGoal) { goalSel.value = savedGoal; break; }
+      }
+    }
+    goalSel.addEventListener("change", function () {
+      try { localStorage.setItem(GOAL_KEY, goalSel.value); } catch (e) {}
+    });
+  }
+
   if (saveBtn && keyInput) {
     saveBtn.addEventListener("click", function () {
       var v = (keyInput.value || "").trim();
@@ -226,7 +243,13 @@ export const AI_ANALYZE_JS = `
       fetch(cfg.endpoint, {
         method: "POST",
         headers: { "content-type": "application/json", "x-anthropic-key": k },
-        body: JSON.stringify({ kind: cfg.kind, id: cfg.id, model: modelSel ? modelSel.value : cfg.defaultModel }),
+        body: JSON.stringify({
+          kind: cfg.kind,
+          id: cfg.id,
+          model: modelSel ? modelSel.value : cfg.defaultModel,
+          goal: goalSel ? goalSel.value : "auto",
+          question: questionEl ? (questionEl.value || "").trim() : "",
+        }),
       }).then(function (r) {
         return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; });
       }).then(function (res) {
