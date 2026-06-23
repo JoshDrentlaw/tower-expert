@@ -8,7 +8,7 @@
 // client-side analyze widget, not navigated to.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { getBuild } from "../../db/db.ts";
+import { getBuild, listReportsForBuild } from "../../db/db.ts";
 import type { RequestContext } from "../services/ctx.ts";
 import { AiError, analyzeBuild, DEFAULT_MODEL, isAllowedModel } from "../services/ai.ts";
 
@@ -46,9 +46,11 @@ export async function handleAiAnalyze(ctx: RequestContext, req: Request): Promis
 
   const build = await getBuild(id);
   if (!build) return err(ctx, "ai.error.notFound", "Build not found.", 404);
+  // The build's recent runs are the feedback signal the analysis reasons over.
+  const reports = await listReportsForBuild(id);
 
   try {
-    const { text, model: served } = await analyzeBuild(apiKey, model, build);
+    const { text, model: served } = await analyzeBuild(apiKey, model, build, reports);
     if (!text) return err(ctx, "ai.error.empty", "The model returned no analysis. Try again.", 502);
     return json({ text, model: served });
   } catch (e) {

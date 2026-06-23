@@ -132,6 +132,24 @@ export async function getReport(id: number): Promise<BattleReport | undefined> {
   return rows[0] ? withCells(rows[0]) : undefined;
 }
 
+// Recent runs tied to a build, newest first — the feedback signal for AI
+// analysis. Selects `parsed` (unlike listReports) so the analyzer can read
+// per-run detail like "Killed By". Capped low; the prompt only needs a window.
+export async function listReportsForBuild(buildId: number, limit = 12): Promise<BattleReport[]> {
+  const rows = await sql<ReportRow[]>`
+    select r.id, r.build_id, b.label as build_label,
+           r.occurred_at, r.tier, r.wave, r.coins::float8 as coins, r.duration_s,
+           r.parsed, r.created_at,
+           r.parsed->'battle_report'->>'Cells Earned' as cells_raw,
+           (abs(extract(epoch from (r.occurred_at - r.created_at))) < 10) as date_inferred
+    from battle_reports r
+    left join builds b on b.id = r.build_id
+    where r.build_id = ${buildId}
+    order by r.occurred_at desc
+    limit ${limit}`;
+  return rows.map(withCells);
+}
+
 export async function insertBattleReport(r: {
   build_id: number | null;
   occurred_at: string; // caller passes now() when date was missing/unparseable in paste
