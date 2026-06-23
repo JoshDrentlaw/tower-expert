@@ -61,10 +61,30 @@ export function AiAnalyze(
         <p class="hint ai-err" data-ai-keyerror role="alert"></p>
       </div>
       <div data-ai-ready hidden>
+        <label class="sr-only" for="ai-question">
+          {t("ai.questionLabel", { default: "Ask a specific question (optional)" })}
+        </label>
+        <textarea
+          id="ai-question"
+          class="ai-question"
+          data-ai-question
+          rows={2}
+          placeholder={t("ai.questionPlaceholder", {
+            default: "Ask something specific (optional) — e.g. why am I dying at wave 3500?",
+          })}
+        >
+        </textarea>
         <div class="ai-controls">
           <button type="button" data-ai-run>{runLabel}</button>
           <select data-ai-model aria-label={t("ai.modelLabel", { default: "Model" })}>
             {AI_MODELS.map((m) => <option value={m.id}>{m.label}</option>)}
+          </select>
+          <select data-ai-goal aria-label={t("ai.goalLabel", { default: "Optimization goal" })}>
+            <option value="auto">{t("ai.goalAuto", { default: "Auto-detect goal" })}</option>
+            <option value="farming">{t("ai.goalFarming", { default: "Farming (economy)" })}</option>
+            <option value="pushing">
+              {t("ai.goalPushing", { default: "Pushing (milestone)" })}
+            </option>
           </select>
           <button type="button" class="ai-link" data-ai-forget>
             {t("ai.forgetKey", { default: "Forget key" })}

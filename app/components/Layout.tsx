@@ -177,6 +177,7 @@ const STYLE = `
   .ai-keyrow { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
   .ai-keyrow input { flex: 1 1 16rem; }
   .ai-keyrow button { flex: 0 0 auto; }
+  .ai-question { font-family: var(--body); font-size: .9rem; resize: vertical; margin-bottom: .6rem; }
   .ai-controls { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-bottom: .6rem; }
   .ai-controls select { width: auto; flex: 0 0 auto; }
   .ai-link { background: transparent; color: var(--muted); padding: .35rem .25rem;

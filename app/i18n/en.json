@@ -169,6 +169,12 @@
   "ai.copyText": "Copy as text",
   "ai.copied": "Copied",
   "ai.copyFailed": "Copy failed",
+  "ai.goalLabel": "Optimization goal",
+  "ai.goalAuto": "Auto-detect goal",
+  "ai.goalFarming": "Farming (economy)",
+  "ai.goalPushing": "Pushing (milestone)",
+  "ai.questionLabel": "Ask a specific question (optional)",
+  "ai.questionPlaceholder": "Ask something specific (optional) — e.g. why am I dying at wave 3500?",
 
   "ai.error.noKey": "Add your Anthropic API key to use analysis.",
   "ai.error.badRequest": "Malformed request.",
