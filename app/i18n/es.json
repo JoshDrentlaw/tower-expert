@@ -121,5 +121,30 @@
   "mod.cannon": "Cañón",
   "mod.armor": "Armadura",
   "mod.generator": "Generador",
-  "mod.core": "Núcleo"
+  "mod.core": "Núcleo",
+
+  "ai.heading": "Análisis con IA",
+  "ai.noscript": "El análisis con IA necesita JavaScript activado.",
+  "ai.keyIntro": "Usa tu propia clave de API de Anthropic. Se guarda solo en este navegador y se envía a Anthropic para una solicitud a la vez — nunca se guarda en este sitio.",
+  "ai.keyLabel": "Clave de API de Anthropic",
+  "ai.saveKey": "Guardar clave",
+  "ai.modelLabel": "Modelo",
+  "ai.run": "Analizar este build",
+  "ai.forgetKey": "Olvidar clave",
+  "ai.usingKey": "Usando la clave",
+  "ai.keyRequired": "Ingresa una clave.",
+  "ai.storeFailed": "No se pudo guardar la clave en este navegador.",
+  "ai.analyzing": "Analizando…",
+  "ai.working": "Analizando tu build — esto puede tardar hasta un minuto.",
+
+  "ai.error.noKey": "Agrega tu clave de API de Anthropic para usar el análisis.",
+  "ai.error.badRequest": "Solicitud mal formada.",
+  "ai.error.notFound": "Build no encontrado.",
+  "ai.error.empty": "El modelo no devolvió ningún análisis. Inténtalo de nuevo.",
+  "ai.error.auth": "Esa clave de API fue rechazada. Revísala e inténtalo de nuevo.",
+  "ai.error.permission": "Esta clave no puede usar el modelo seleccionado.",
+  "ai.error.rateLimit": "Tu clave llegó a su límite de solicitudes. Espera un momento y reintenta.",
+  "ai.error.refusal": "El modelo no quiso analizar este build.",
+  "ai.error.network": "No se pudo conectar con el servidor. Inténtalo de nuevo.",
+  "ai.error.generic": "El análisis falló. Inténtalo de nuevo."
 }

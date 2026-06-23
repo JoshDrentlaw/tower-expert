@@ -149,5 +149,30 @@
   "placeholder.num": "e.g. 869.03M",
   "placeholder.mult": "e.g. ×1.012",
   "placeholder.pct": "e.g. 56.4%",
-  "placeholder.sec": "e.g. 14s"
+  "placeholder.sec": "e.g. 14s",
+
+  "ai.heading": "AI analysis",
+  "ai.noscript": "AI analysis needs JavaScript enabled.",
+  "ai.keyIntro": "Bring your own Anthropic API key. It's stored only in this browser and forwarded to Anthropic for one request at a time — never saved on this site.",
+  "ai.keyLabel": "Anthropic API key",
+  "ai.saveKey": "Save key",
+  "ai.modelLabel": "Model",
+  "ai.run": "Analyze this build",
+  "ai.forgetKey": "Forget key",
+  "ai.usingKey": "Using key",
+  "ai.keyRequired": "Enter a key.",
+  "ai.storeFailed": "Couldn't store the key in this browser.",
+  "ai.analyzing": "Analyzing…",
+  "ai.working": "Analyzing your build — this can take up to a minute.",
+
+  "ai.error.noKey": "Add your Anthropic API key to use analysis.",
+  "ai.error.badRequest": "Malformed request.",
+  "ai.error.notFound": "Build not found.",
+  "ai.error.empty": "The model returned no analysis. Try again.",
+  "ai.error.auth": "That API key was rejected. Check it and try again.",
+  "ai.error.permission": "This key can't use the selected model.",
+  "ai.error.rateLimit": "Your key hit its rate limit. Wait a moment and retry.",
+  "ai.error.refusal": "The model declined to analyze this build.",
+  "ai.error.network": "Couldn't reach the server. Try again.",
+  "ai.error.generic": "Analysis failed. Try again."
 }
