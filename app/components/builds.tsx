@@ -14,6 +14,8 @@ import { AUTOSAVE_JS } from "./draft_autosave.ts";
 import { HIGHLIGHT_JS } from "./changed_highlight.ts";
 import { LEVEL_COMPUTE_JS } from "./level_compute.ts";
 import { MODULE_AUTOFILL_JS } from "./module_autofill.ts";
+import { AI_ANALYZE_JS } from "./ai_analyze.ts";
+import { AI_MODELS, DEFAULT_MODEL } from "../services/ai.ts";
 import { findModule, MODULE_CATALOG } from "../module_catalog.ts";
 
 // Inline client-side draft autosave for the build form (the app's only client
@@ -48,6 +50,75 @@ function ModuleCatalog({ ctx }: { ctx: RequestContext }) {
         __html: `window.__moduleCatalog=${data};window.__moduleI18n=${i18n};`,
       }}
     />
+  );
+}
+
+// AiAnalyze — the bring-your-own-key build analysis widget. Both the key form
+// and the analyze controls are rendered server-side; ai_analyze.ts toggles
+// between them based on whether a key is in this browser's localStorage. The
+// key never reaches our server except as a header it forwards once to Anthropic.
+// Config + strings ride on window.__ai / window.__aiI18n; JSON is `<`-escaped so
+// catalog text can't break out of the <script>.
+function AiAnalyze({ ctx, buildId }: { ctx: RequestContext; buildId: number }) {
+  const { base, t } = ctx;
+  const esc = (o: unknown) => JSON.stringify(o).replace(/</g, "\\u003c");
+  const cfg = esc({ endpoint: `${base}/ai/analyze`, buildId, defaultModel: DEFAULT_MODEL });
+  const i18n = esc({
+    usingKey: t("ai.usingKey", { default: "Using key" }),
+    keyRequired: t("ai.keyRequired", { default: "Enter a key." }),
+    storeFailed: t("ai.storeFailed", { default: "Couldn't store the key in this browser." }),
+    run: t("ai.run", { default: "Analyze this build" }),
+    analyzing: t("ai.analyzing", { default: "Analyzing…" }),
+    working: t("ai.working", {
+      default: "Analyzing your build — this can take up to a minute.",
+    }),
+    genericError: t("ai.error.generic", { default: "Analysis failed. Try again." }),
+    networkError: t("ai.error.network", { default: "Couldn't reach the server. Try again." }),
+  });
+  return (
+    <section class="ai-panel" data-ai-panel aria-labelledby="ai-h">
+      <h3 id="ai-h" class="ai-h">{t("ai.heading", { default: "AI analysis" })}</h3>
+      <noscript>
+        <p class="hint">{t("ai.noscript", { default: "AI analysis needs JavaScript enabled." })}</p>
+      </noscript>
+      <div data-ai-keyform hidden>
+        <p class="hint">
+          {t("ai.keyIntro", {
+            default:
+              "Bring your own Anthropic API key. It's stored only in this browser and forwarded to Anthropic for one request at a time — never saved on this site.",
+          })}
+        </p>
+        <div class="ai-keyrow">
+          <input
+            type="password"
+            data-ai-keyinput
+            autocomplete="off"
+            spellcheck={false}
+            placeholder="sk-ant-…"
+            aria-label={t("ai.keyLabel", { default: "Anthropic API key" })}
+          />
+          <button type="button" data-ai-save>{t("ai.saveKey", { default: "Save key" })}</button>
+        </div>
+        <p class="hint ai-err" data-ai-keyerror role="alert"></p>
+      </div>
+      <div data-ai-ready hidden>
+        <div class="ai-controls">
+          <button type="button" data-ai-run>
+            {t("ai.run", { default: "Analyze this build" })}
+          </button>
+          <select data-ai-model aria-label={t("ai.modelLabel", { default: "Model" })}>
+            {AI_MODELS.map((m) => <option value={m.id}>{m.label}</option>)}
+          </select>
+          <button type="button" class="ai-link" data-ai-forget>
+            {t("ai.forgetKey", { default: "Forget key" })}
+          </button>
+          <span class="hint" data-ai-keyhint></span>
+        </div>
+        <div class="ai-output" data-ai-output aria-live="polite"></div>
+      </div>
+      <script dangerouslySetInnerHTML={{ __html: `window.__ai=${cfg};window.__aiI18n=${i18n};` }} />
+      <script dangerouslySetInnerHTML={{ __html: AI_ANALYZE_JS }} />
+    </section>
   );
 }
 
@@ -378,6 +449,7 @@ export function BuildDetail(
         )
         : null}
       {sections.length ? sections : <p class="hint">{t("buildDetail.noStats")}</p>}
+      <AiAnalyze ctx={ctx} buildId={b.id} />
       <details style="margin-top:1rem;">
         <summary class="hint" style="cursor:pointer;font-family:var(--mono);font-size:.78rem;">
           {t("buildDetail.rawData")}

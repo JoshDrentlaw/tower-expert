@@ -9,6 +9,7 @@
     "jsxImportSource": "preact"
   },
   "imports": {
+    "@anthropic-ai/sdk": "npm:@anthropic-ai/sdk@0.105.0",
     "postgres": "npm:postgres@3",
     "@std/assert": "jsr:@std/assert@1",
     "preact": "npm:preact@10",

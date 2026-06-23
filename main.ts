@@ -19,6 +19,7 @@ import {
   handleReportProgression,
   handleReportSave,
 } from "./app/routes/reports.tsx";
+import { handleAiAnalyze } from "./app/routes/ai.tsx";
 import { makeContext } from "./app/services/ctx.ts";
 
 const BASE = (Deno.env.get("BASE_PATH") ?? "/tower").replace(/\/+$/, "");
@@ -71,6 +72,12 @@ Deno.serve({ port: PORT }, async (req) => {
     }
     if (req.method === "POST" && pathname === `${BASE}/reports`) {
       return await handleReportSave(ctx, req);
+    }
+
+    // AI analysis proxy (bring-your-own-key). Key rides in the x-anthropic-key
+    // header; body names what to analyze. JSON in, JSON out.
+    if (req.method === "POST" && pathname === `${BASE}/ai/analyze`) {
+      return await handleAiAnalyze(ctx, req);
     }
 
     const reportMatch = reportPattern.exec(url);
