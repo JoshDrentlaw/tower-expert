@@ -7,9 +7,10 @@
 // the static list of models the app offers.
 
 import Anthropic from "@anthropic-ai/sdk";
-import type { Build } from "../../db/db.ts";
+import type { BattleReport, Build } from "../../db/db.ts";
 import { STAT_SCHEMA } from "../stat_schema.ts";
 import { formatNum } from "../num_format.ts";
+import { perHour } from "../progression.ts";
 
 // The models the app offers. The SERVER is the source of truth — a request
 // naming anything outside this list is rejected (the client picks from this
@@ -44,18 +45,34 @@ export interface AnalyzeResult {
 
 const SYSTEM =
   `You are an expert player and theorycrafter for the mobile idle game "The Tower: Idle Tower Defense". \
-You give specific, actionable advice on builds — stat allocation, workshop upgrade priorities, module and \
-substat choices.
+You give specific, actionable advice on builds and how they perform in runs.
 
-The user tracks a build as a snapshot of stat values. Analyze the build you are given and respond with:
-- A short read on what this build is optimized for (farming coins/cells vs. pushing tier/wave, etc.).
-- The 2–4 highest-leverage changes to make next, in priority order, each with a one-line reason.
-- Any imbalance or wasted investment you notice.
+Two things shape every answer:
+
+1. The player's goal — advice differs sharply between the two:
+   - Economy / farming: maximizing coins and cells per hour, usually at a tier the player can sustain.
+   - Milestone / pushing: reaching the highest possible tier and wave, where survival (defense, health, \
+regen) is the binding constraint.
+   Infer the likely goal from the data — a sustained lower tier with high coins/hour suggests farming; \
+dying at a wall on a high tier suggests pushing. If it's genuinely ambiguous, state which goal you're \
+assuming, or split your advice by goal.
+
+2. The build–run relationship. The build is the input (what the player invested in); a run is the outcome \
+(tier and wave reached, coins and cells earned, run duration, what killed them). When run data is \
+provided, treat it as the feedback signal: judge the build by what its runs actually produced and find \
+the bottleneck they reveal (died early to a specific wave; coins/hour flat despite more investment). When \
+no run is provided, reason from the build alone and note that linking a recent run would sharpen the read.
+
+Respond with:
+- A short read on what the build is optimized for and how well it's meeting that goal.
+- The 2–4 highest-leverage changes to make next, in priority order, each with a one-line reason tied to \
+the goal and, when available, the run outcomes.
+- Any imbalance or wasted investment relative to the goal.
 
 Lead with the most useful takeaway. Be concrete and tie every point to the specific values shown — skip \
-generic idle-game advice. If a critical stat is absent from the data, note that briefly rather than \
-guessing. You do not have live access to the game wiki, so flag any claim you are unsure about rather than \
-stating it as fact.`;
+generic idle-game advice. If a critical stat or the goal is unclear from the data, say so briefly rather \
+than guessing. You do not have live access to the game wiki, so flag any claim you are unsure about \
+rather than stating it as fact.`;
 
 // Render a build's stored stats into labeled plain text for the prompt. Pure;
 // uses STAT_SCHEMA for labels and formatNum for game-style notation so the model
@@ -90,21 +107,49 @@ function renderBuild(b: Build): string {
   return out.join("\n");
 }
 
+// Render this build's recent runs as the feedback signal for the prompt, newest
+// first. Prefers the game's own strings from the parsed report (exactly what the
+// player saw) and falls back to the promoted columns. Pure; "" when no runs.
+function renderRuns(reports: BattleReport[]): string {
+  if (reports.length === 0) return "";
+  const lines = ["Recent runs on this build (newest first):"];
+  for (const r of reports) {
+    const br = (r.parsed?.["battle_report"] ?? {}) as Record<string, string>;
+    const cphNum = perHour(r.coins, r.duration_s);
+    const cph = br["Coins Per Hour"] ?? (cphNum != null ? formatNum(cphNum, "num") : null);
+    const coins = br["Coins Earned"] ?? (r.coins != null ? formatNum(r.coins, "num") : null);
+    const cells = br["Cells Earned"] ?? (r.cells != null ? formatNum(r.cells, "num") : null);
+    const dur = br["Real Time"] ?? (r.duration_s != null ? `${r.duration_s}s` : null);
+    const parts = [
+      `T${r.tier ?? "?"} wave ${r.wave ?? "?"}`,
+      coins ? `${coins} coins${cph ? ` (${cph}/hr)` : ""}` : null,
+      cells ? `${cells} cells` : null,
+      dur,
+      br["Killed By"] ? `killed by ${br["Killed By"]}` : null,
+    ].filter((p) => p !== null);
+    lines.push(`  - ${parts.join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
 // Run one analysis. Throws Anthropic SDK errors (AuthenticationError,
 // RateLimitError, …) for the route to map; throws AiError on a safety refusal.
 export async function analyzeBuild(
   apiKey: string,
   model: string,
   build: Build,
+  reports: BattleReport[] = [],
 ): Promise<AnalyzeResult> {
   const client = new Anthropic({ apiKey });
   const stats = renderBuild(build);
+  const runs = renderRuns(reports);
   const userText = [
     `Build: ${build.label}`,
     build.note ? `Note: ${build.note}` : null,
     "",
     "Stats:",
     stats || "(no stats recorded)",
+    ...(runs ? ["", runs] : []),
   ].filter((l) => l !== null).join("\n");
 
   const res = await client.messages.create({
