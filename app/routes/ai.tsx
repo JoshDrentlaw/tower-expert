@@ -8,9 +8,16 @@
 // client-side analyze widget, not navigated to.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { getBuild, listReportsForBuild } from "../../db/db.ts";
+import { getBuild, getReport, listReportsForBuild } from "../../db/db.ts";
 import type { RequestContext } from "../services/ctx.ts";
-import { AiError, analyzeBuild, DEFAULT_MODEL, isAllowedModel } from "../services/ai.ts";
+import {
+  AiError,
+  analyzeBuild,
+  analyzeReport,
+  type AnalyzeResult,
+  DEFAULT_MODEL,
+  isAllowedModel,
+} from "../services/ai.ts";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -37,22 +44,35 @@ export async function handleAiAnalyze(ctx: RequestContext, req: Request): Promis
   }
 
   const id = Number(body.id);
-  if (body.kind !== "build" || !Number.isInteger(id) || id <= 0) {
+  const kind = body.kind;
+  if ((kind !== "build" && kind !== "run") || !Number.isInteger(id) || id <= 0) {
     return err(ctx, "ai.error.badRequest", "Malformed request.", 400);
   }
   const model = typeof body.model === "string" && isAllowedModel(body.model)
     ? body.model
     : DEFAULT_MODEL;
 
-  const build = await getBuild(id);
-  if (!build) return err(ctx, "ai.error.notFound", "Build not found.", 404);
-  // The build's recent runs are the feedback signal the analysis reasons over.
-  const reports = await listReportsForBuild(id);
-
   try {
-    const { text, model: served } = await analyzeBuild(apiKey, model, build, reports);
-    if (!text) return err(ctx, "ai.error.empty", "The model returned no analysis. Try again.", 502);
-    return json({ text, model: served });
+    let result: AnalyzeResult;
+    if (kind === "build") {
+      const build = await getBuild(id);
+      if (!build) return err(ctx, "ai.error.notFound", "Not found.", 404);
+      // The build's recent runs are the feedback signal the analysis reasons over.
+      const reports = await listReportsForBuild(id);
+      result = await analyzeBuild(apiKey, model, build, reports);
+    } else {
+      const report = await getReport(id);
+      if (!report) return err(ctx, "ai.error.notFound", "Not found.", 404);
+      // Anchor the run on the build that produced it (when linked) and that
+      // build's other recent runs for trend.
+      const build = report.build_id ? await getBuild(report.build_id) : undefined;
+      const reports = report.build_id ? await listReportsForBuild(report.build_id) : [];
+      result = await analyzeReport(apiKey, model, report, build, reports);
+    }
+    if (!result.text) {
+      return err(ctx, "ai.error.empty", "The model returned no analysis. Try again.", 502);
+    }
+    return json({ text: result.text, model: result.model });
   } catch (e) {
     return mapError(ctx, e);
   }

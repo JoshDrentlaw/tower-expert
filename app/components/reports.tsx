@@ -8,6 +8,7 @@ import { mostFarmedTier, tiersOf, toRunPoints } from "../progression.ts";
 import { UPLOT_CSS, UPLOT_JS } from "../vendor/uplot_asset.ts";
 import { PROGRESSION_JS } from "./progression_chart.ts";
 import { Onboard } from "./onboard.tsx";
+import { AiAnalyze } from "./ai_panel.tsx";
 
 // The "date was inferred" marker: a visual (color + short text, hidden from
 // assistive tech) plus a screen-reader-only full explanation.
@@ -283,6 +284,7 @@ export function ReportDetail({ ctx, r }: { ctx: RequestContext; r: BattleReport 
 
   return (
     <>
+      <AiAnalyze ctx={ctx} kind="run" id={r.id} />
       <table style="width:auto;margin-bottom:1.5rem;font-size:.88rem;">{rows}</table>
       <div class="build-prompt">
         <p class="hint">{t("reportDetail.nextBuildQ")}</p>

@@ -107,51 +107,46 @@ function renderBuild(b: Build): string {
   return out.join("\n");
 }
 
-// Render this build's recent runs as the feedback signal for the prompt, newest
-// first. Prefers the game's own strings from the parsed report (exactly what the
-// player saw) and falls back to the promoted columns. Pure; "" when no runs.
-function renderRuns(reports: BattleReport[]): string {
-  if (reports.length === 0) return "";
-  const lines = ["Recent runs on this build (newest first):"];
-  for (const r of reports) {
-    const br = (r.parsed?.["battle_report"] ?? {}) as Record<string, string>;
-    const cphNum = perHour(r.coins, r.duration_s);
-    const cph = br["Coins Per Hour"] ?? (cphNum != null ? formatNum(cphNum, "num") : null);
-    const coins = br["Coins Earned"] ?? (r.coins != null ? formatNum(r.coins, "num") : null);
-    const cells = br["Cells Earned"] ?? (r.cells != null ? formatNum(r.cells, "num") : null);
-    const dur = br["Real Time"] ?? (r.duration_s != null ? `${r.duration_s}s` : null);
-    const parts = [
-      `T${r.tier ?? "?"} wave ${r.wave ?? "?"}`,
-      coins ? `${coins} coins${cph ? ` (${cph}/hr)` : ""}` : null,
-      cells ? `${cells} cells` : null,
-      dur,
-      br["Killed By"] ? `killed by ${br["Killed By"]}` : null,
-    ].filter((p) => p !== null);
-    lines.push(`  - ${parts.join(", ")}`);
-  }
-  return lines.join("\n");
+// One run as a compact line. Prefers the game's own strings from the parsed
+// report (exactly what the player saw) and falls back to the promoted columns.
+function runLine(r: BattleReport): string {
+  const br = (r.parsed?.["battle_report"] ?? {}) as Record<string, string>;
+  const cphNum = perHour(r.coins, r.duration_s);
+  const cph = br["Coins Per Hour"] ?? (cphNum != null ? formatNum(cphNum, "num") : null);
+  const coins = br["Coins Earned"] ?? (r.coins != null ? formatNum(r.coins, "num") : null);
+  const cells = br["Cells Earned"] ?? (r.cells != null ? formatNum(r.cells, "num") : null);
+  const dur = br["Real Time"] ?? (r.duration_s != null ? `${r.duration_s}s` : null);
+  return [
+    `T${r.tier ?? "?"} wave ${r.wave ?? "?"}`,
+    coins ? `${coins} coins${cph ? ` (${cph}/hr)` : ""}` : null,
+    cells ? `${cells} cells` : null,
+    dur,
+    br["Killed By"] ? `killed by ${br["Killed By"]}` : null,
+  ].filter((p) => p !== null).join(", ");
 }
 
-// Run one analysis. Throws Anthropic SDK errors (AuthenticationError,
-// RateLimitError, …) for the route to map; throws AiError on a safety refusal.
-export async function analyzeBuild(
-  apiKey: string,
-  model: string,
-  build: Build,
-  reports: BattleReport[] = [],
-): Promise<AnalyzeResult> {
-  const client = new Anthropic({ apiKey });
-  const stats = renderBuild(build);
-  const runs = renderRuns(reports);
-  const userText = [
+// A list of runs under a header. Pure; "" when there are none.
+function renderRuns(reports: BattleReport[], header: string): string {
+  if (reports.length === 0) return "";
+  return [header, ...reports.map((r) => `  - ${runLine(r)}`)].join("\n");
+}
+
+// Render a build's stats block for a prompt.
+function buildBlock(build: Build): string[] {
+  return [
     `Build: ${build.label}`,
     build.note ? `Note: ${build.note}` : null,
     "",
     "Stats:",
-    stats || "(no stats recorded)",
-    ...(runs ? ["", runs] : []),
-  ].filter((l) => l !== null).join("\n");
+    renderBuild(build) || "(no stats recorded)",
+  ].filter((l): l is string => l !== null);
+}
 
+// The one place that talks to the model. Throws Anthropic SDK errors
+// (AuthenticationError, RateLimitError, …) for the route to map; throws AiError
+// on a safety refusal.
+async function complete(apiKey: string, model: string, userText: string): Promise<AnalyzeResult> {
+  const client = new Anthropic({ apiKey });
   const res = await client.messages.create({
     model,
     max_tokens: 16000,
@@ -162,7 +157,7 @@ export async function analyzeBuild(
   });
 
   if (res.stop_reason === "refusal") {
-    throw new AiError("refusal", "The model declined to analyze this build.");
+    throw new AiError("refusal", "The model declined to analyze this.");
   }
 
   const text = res.content
@@ -172,4 +167,39 @@ export async function analyzeBuild(
     .trim();
 
   return { text, model: res.model };
+}
+
+// Analyze a build, with its recent runs as the feedback signal.
+export function analyzeBuild(
+  apiKey: string,
+  model: string,
+  build: Build,
+  reports: BattleReport[] = [],
+): Promise<AnalyzeResult> {
+  const runs = renderRuns(reports, "Recent runs on this build (newest first):");
+  const userText = [
+    ...buildBlock(build),
+    ...(runs ? ["", runs] : []),
+  ].join("\n");
+  return complete(apiKey, model, userText);
+}
+
+// Analyze a single run, anchored on the build that produced it (when linked) and
+// that build's other recent runs for trend.
+export function analyzeReport(
+  apiKey: string,
+  model: string,
+  report: BattleReport,
+  build: Build | undefined,
+  reports: BattleReport[] = [],
+): Promise<AnalyzeResult> {
+  const others = reports.filter((r) => r.id !== report.id);
+  const trend = renderRuns(others, "Other recent runs on this build (newest first):");
+  const userText = [
+    `This run: ${runLine(report)}`,
+    "",
+    ...(build ? buildBlock(build) : ["(This run isn't linked to a saved build.)"]),
+    ...(trend ? ["", trend] : []),
+  ].join("\n");
+  return complete(apiKey, model, userText);
 }
